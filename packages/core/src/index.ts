@@ -30,7 +30,7 @@ export function runChecks(data: PaperData, config: Config = DEFAULT_CONFIG): Che
     checkUndefinedRefs(data),
     checkPageLimit(data, config),
     checkPageNumbers(data),
-    checkStyle(data),
+    checkStyle(data, config),
     checkFontsEmbedded(data),
     checkFontsType3(data),
   ];

@@ -392,8 +392,13 @@ export function checkPageNumbers(data: PaperData): CheckResult {
  *     for headings/title, smaller only for known small roles).
  *  2. The bibliography must be set in the template's serif font.
  *  3. No coloured text in the paper (figures are exempt).
+ *
+ * Gated behind config.styleCheck: implemented but not enforced yet.
  */
-export function checkStyle(data: PaperData): CheckResult {
+export function checkStyle(data: PaperData, config: Config): CheckResult {
+  if (!config.styleCheck) {
+    return result("style", "PASS", []);
+  }
   const problems: Evidence[] = [];
   problems.push(...sizeProblems(data));
   problems.push(...bibFontProblems(data));

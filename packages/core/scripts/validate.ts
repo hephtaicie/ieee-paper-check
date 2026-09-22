@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { validate } from "../src/index.ts";
+import { DEFAULT_CONFIG, validate } from "../src/index.ts";
 
 const ROOT = new URL("../../../", import.meta.url).pathname;
 const PDFS = join(ROOT, "corpus", "pdfs");
@@ -15,8 +15,16 @@ const GT = JSON.parse(readFileSync(join(ROOT, "corpus", "ground-truth.json"), "u
   }
 >;
 
+// Corpus config: every classical check on, plus the not-yet-default style
+// check so its mutants keep being exercised (0 FP / 0 FN requirement).
+const config = { ...DEFAULT_CONFIG, styleCheck: true };
+
 // First: smoke test on one good paper to catch extraction crashes
-const good = await validate(new Uint8Array(readFileSync(join(PDFS, "good.pdf"))), "good.pdf");
+const good = await validate(
+  new Uint8Array(readFileSync(join(PDFS, "good.pdf"))),
+  "good.pdf",
+  config,
+);
 console.log("== good.pdf ==");
 console.log("pages:", good.pageCount, "valid:", good.valid);
 for (const r of good.results) {
@@ -40,7 +48,7 @@ let mismatches = 0;
 for (const [name, { file, expected, requires }] of Object.entries(GT)) {
   let report: Awaited<ReturnType<typeof validate>> | undefined;
   try {
-    report = await validate(new Uint8Array(readFileSync(join(PDFS, file))), file);
+    report = await validate(new Uint8Array(readFileSync(join(PDFS, file))), file, config);
   } catch (e) {
     console.error(`✘ ${name}: EXTRACTION ERROR: ${(e as Error).message}`);
     mismatches++;

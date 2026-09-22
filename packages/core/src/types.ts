@@ -78,11 +78,15 @@ export interface Config {
   acronyms: string[];
   /** Appendices are forbidden in the paper body (submitted separately). */
   forbidAppendices: boolean;
+  /** Style conformance check (sizes, bibliography font, coloured text).
+   * Implemented but not enabled by default yet. */
+  styleCheck: boolean;
 }
 
 export const DEFAULT_CONFIG: Config = {
   pageLimit: 12,
   forbidAppendices: true,
+  styleCheck: false,
   smallWords: [
     "a",
     "an",
