@@ -151,12 +151,16 @@ def body(n_blocks: int) -> str:
     return "\n\n".join(parts)
 
 
-BIB = "\n\n".join(
-    rf"\bibitem{{b{i}}} A. Author{i}, ``Study {i} on parallel-in-time "
-    rf"integration of data-aware workloads,'' J. Simul. Workloads, "
-    rf"vol. {i + 1}, no. 2, pp. {10 * i}--{10 * i + 9}, 2020."
-    for i in range(1, 13)
-)
+def make_bib(n: int) -> str:
+    return "\n\n".join(
+        rf"\bibitem{{b{i}}} A. Author{i}, ``Study {i} on parallel-in-time "
+        rf"integration of data-aware workloads,'' J. Simul. Workloads, "
+        rf"vol. {i + 1}, no. 2, pp. {10 * i}--{10 * i + 9}, 2020."
+        for i in range(1, n + 1)
+    )
+
+
+BIB = make_bib(12)
 
 BASE_TEMPLATE = r"""\documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
@@ -201,6 +205,7 @@ __COPYRIGHT__
 
 __BODY__
 
+__PRE_REFS__
 \begin{thebibliography}{00}
 __BIB__
 \end{thebibliography}
@@ -217,6 +222,8 @@ def render(
     n_blocks: int = 20,
     extra: str = "",
     preamble: str = "",
+    pre_refs: str = "",
+    bib: str = BIB,
 ) -> str:
     tex = BASE_TEMPLATE
     if preamble:
@@ -225,7 +232,8 @@ def render(
     tex = tex.replace("__AUTHORS__", authors)
     tex = tex.replace("__COPYRIGHT__", copyright)
     tex = tex.replace("__BODY__", body(n_blocks))
-    tex = tex.replace("__BIB__", BIB)
+    tex = tex.replace("__PRE_REFS__", pre_refs)
+    tex = tex.replace("__BIB__", bib)
     tex = tex.replace("__EXTRA__", extra)
     return tex
 
@@ -261,6 +269,17 @@ VARIANTS_SPEC: dict[str, dict] = {
     # Edge case: content ends on p12, references spill onto p13 -> PASS.
     "good_refs_spill": {
         "tex": render(n_blocks=53),
+        "expected": {},
+    },
+    # Edge case: content ends on p12, References heading opens p13 and the
+    # bibliography runs through p14 -> PASS (references excluded).
+    "good_refs_start13": {
+        "tex": render(n_blocks=53, pre_refs=r"\clearpage", bib=make_bib(60)),
+        "expected": {},
+    },
+    # Edge case: references start on p11 and span three pages -> PASS.
+    "good_refs_long": {
+        "tex": render(n_blocks=48, bib=make_bib(60)),
         "expected": {},
     },
     "bad_copyright": {

@@ -14,7 +14,7 @@ your machine — no PDF ever leaves it.
 | 4 | No appendix inside the paper (appendices are submitted separately) |
 | 5 | Paper is de-anonymized (no "Anonymous Author(s)", no "Paper ID") |
 | 6 | No unresolved LaTeX references (`??` or `[?]`) |
-| 7 | Content within 12 pages; references may spill past the limit |
+| 7 | Main content within 12 pages, references excluded (they may start on p13 and spill as far as needed) |
 | 8 | No page numbers in margins |
 | 9 | All fonts embedded |
 | 10 | No Type 3 fonts |

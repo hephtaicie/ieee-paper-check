@@ -29,6 +29,36 @@
       "fonts_type3": "PASS"
     }
   },
+  "good_refs_start13": {
+    "file": "good_refs_start13.pdf",
+    "expected": {
+      "copyright": "PASS",
+      "appendix": "PASS",
+      "title": "PASS",
+      "artifact_appendix": "PASS",
+      "anonymized": "PASS",
+      "undefined_refs": "PASS",
+      "page_limit": "PASS",
+      "page_numbers": "PASS",
+      "fonts_embedded": "PASS",
+      "fonts_type3": "PASS"
+    }
+  },
+  "good_refs_long": {
+    "file": "good_refs_long.pdf",
+    "expected": {
+      "copyright": "PASS",
+      "appendix": "PASS",
+      "title": "PASS",
+      "artifact_appendix": "PASS",
+      "anonymized": "PASS",
+      "undefined_refs": "PASS",
+      "page_limit": "PASS",
+      "page_numbers": "PASS",
+      "fonts_embedded": "PASS",
+      "fonts_type3": "PASS"
+    }
+  },
   "bad_copyright": {
     "file": "bad_copyright.pdf",
     "expected": {
