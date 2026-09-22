@@ -84,6 +84,38 @@ def replace_authors(xml: str, names: list[str]) -> str:
     return re.sub(r"Given Name Surname", lambda m: next(pool), xml)
 
 
+# Template guidance the IEEE instructions say to delete before submission:
+# the red notice after the references and the embedded how-to paragraphs.
+# Keeping them would trip the style check (coloured text) and would model
+# an incomplete camera-ready paper.
+GUIDANCE_MARKERS = [
+    "IEEE conference templates contain guidance text",
+    "Do not add any kind of pagination anywhere in the paper",
+    "Do not number text heads",
+    "Equipment and supplies",
+    "equipment and supplies",  # lowercase variant inside the how-to list
+    "E. Some Common Mistakes",
+    "D. Some Common Mistakes",
+    "C. Some Common Mistakes",
+]
+
+
+def para_text(para: str) -> str:
+    return "".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", para))
+
+
+def strip_guidance(xml: str) -> str:
+    out = []
+    pos = 0
+    for m in re.finditer(r"<w:p[ >].*?</w:p>", xml, re.DOTALL):
+        text = para_text(m.group(0))
+        if any(k in text for k in GUIDANCE_MARKERS):
+            out.append(xml[pos : m.start()])
+            pos = m.end()
+    out.append(xml[pos:])
+    return "".join(out)
+
+
 def replace_title(xml: str, new_title_para: str) -> str:
     m = TITLE_PARA_RE.search(xml)
     if not m:
@@ -140,6 +172,7 @@ def build_docx(
 
     doc = replace_title(doc, title_para(title, smallcaps, allcaps))
     doc = replace_authors(doc, author_names or AUTHORS)
+    doc = strip_guidance(doc)
     if page_numbers:
         doc, rels, content_types = add_page_numbers(doc, rels, content_types)
 

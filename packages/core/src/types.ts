@@ -8,6 +8,7 @@ export type CheckId =
   | "undefined_refs"
   | "page_limit"
   | "page_numbers"
+  | "style"
   | "fonts_embedded"
   | "fonts_type3";
 
@@ -49,6 +50,9 @@ export interface PageLine {
   h: number;
   font: string;
   size: number;
+  /** Fill colour of the first styled run in the line ("#rrggbb"), if
+   * the extractor could attribute one. Absent ≈ black. */
+  color?: string;
   pageWidth: number;
   pageHeight: number;
 }

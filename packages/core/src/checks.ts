@@ -308,6 +308,12 @@ function inMargin(l: PageLine): boolean {
   return l.y < 40 || l.y > l.pageHeight - 54;
 }
 
+function median(xs: number[]): number | null {
+  if (xs.length === 0) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)]!;
+}
+
 /**
  * The main content must fit within the page limit; references are
  * excluded. Content = everything up to the References heading: page R
@@ -376,6 +382,165 @@ export function checkPageNumbers(data: PaperData): CheckResult {
       rect: lineRect(hits[0]!),
     },
   ]);
+}
+
+/* ------------------------------ 7b. style -------------------------------- */
+
+/**
+ * Camera-ready style conformance:
+ *  1. Font sizes must match the IEEE template: 10 pt body text (bigger
+ *     for headings/title, smaller only for known small roles).
+ *  2. The bibliography must be set in the template's serif font.
+ *  3. No coloured text in the paper (figures are exempt).
+ */
+export function checkStyle(data: PaperData): CheckResult {
+  const problems: Evidence[] = [];
+  problems.push(...sizeProblems(data));
+  problems.push(...bibFontProblems(data));
+  problems.push(...colorProblems(data));
+  if (problems.length === 0) return result("style", "PASS", []);
+  return result("style", "FAIL", problems.slice(0, 10));
+}
+
+/** y-range of the abstract+Index Terms block on page 1 (IEEEtran sets it in
+ * 9pt, a legitimate template size). Returns null when there is no abstract. */
+function abstractZone(data: PaperData): [number, number] | null {
+  const p1 = data.lines
+    .filter((l) => l.page === 1 && !inMargin(l))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+  const start = p1.find((l) => /^abstract[—-]/i.test(l.text.trim()));
+  if (!start) return null;
+  let endY = start.y + start.h;
+  const terms = p1.find((l) => /^index\s+terms[—-]/i.test(l.text.trim()));
+  if (terms) {
+    endY = terms.y + terms.h;
+    // Include the wrapped keyword lines after the marker (<= 3).
+    const after = p1.filter((l) => l.y >= terms.y && l.y < terms.y + terms.h * 4);
+    if (after.length > 0) endY = Math.max(endY, ...after.map((l) => l.y + l.h));
+  }
+  return [start.y, endY];
+}
+
+function sizeProblems(data: PaperData): Evidence[] {
+  const content = data.lines.filter((l) => !inMargin(l) && l.text.trim().length > 0);
+  if (content.length === 0) return [];
+  const body = median(content.map((l) => l.size));
+  if (body === null) return [];
+  const zone = abstractZone(data);
+  const problems: Evidence[] = [];
+  for (const l of content) {
+    const s = l.size;
+    if (zone && l.page === 1 && l.y >= zone[0] && l.y <= zone[1]) continue;
+    // Headings/title (>= body+1) and body text are the template's sizes.
+    if (s >= body - 0.25) continue;
+    // Known small roles live clearly below the body: 8pt footnotes and
+    // captions, 7pt sub/superscripts, 6pt table notes, 5.8px subscripts.
+    if (s <= body * 0.87) continue;
+    // The squeezed zone in between (8.7-9.7px) is sub-body paragraph
+    // text — the classic trick to dodge the page limit.
+    problems.push({
+      page: l.page,
+      detail: `Font size ${s.toFixed(1)}px (expected ~${body.toFixed(1)}px body or >=6.5px small text): '${l.text.trim().slice(0, 60)}'`,
+      rect: lineRect(l),
+    });
+  }
+  // Deduplicate: one evidence per (page, size) pair is enough.
+  const seen = new Set<string>();
+  return problems.filter((e) => {
+    const k = `${e.page}:${e.detail.split("px")[0]}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+const REFS_HEADING_STYLE_RE = /^references$/i;
+const MIN_BIB_TEXT = 20; // chars; shorter lines are figure axis labels
+
+function bibFamily(font: string): string {
+  // Strip the pdf.js subset prefix and style suffixes: the template
+  // family is what remains ("LMRoman10", "LiberationSerif", "TeXGyreTermes").
+  const base = font.includes("+") ? font.split("+")[1]! : font;
+  return base.replace(/-(Italic|Oblique|Bold|Regular|SC|Caps)+$/g, "");
+}
+
+function isSerifFamily(family: string): boolean {
+  return !/(sans|helvetica|arial|courier|mono|comic|symbol|dingbat|dejavu)/i.test(family);
+}
+
+function bibFontProblems(data: PaperData): Evidence[] {
+  const heading = data.lines.find((l) => REFS_HEADING_STYLE_RE.test(l.text.trim()));
+  if (!heading) return [];
+  const R = heading.page;
+  // The bibliography is set smaller than the body text in both engines
+  // (8pt vs 10pt); body-size lines after the heading belong to full-page
+  // figure sheets, not to the bibliography.
+  const bodySize = median(data.lines.filter((l) => !inMargin(l)).map((l) => l.size)) ?? 10;
+  const candidates = data.lines.filter(
+    (l) => !inMargin(l) && l.text.trim().length >= MIN_BIB_TEXT && l.size < bodySize - 1,
+  );
+  // The heading sits in one column; body text flows in the other column
+  // at the same heights. Restrict to the heading's column and below.
+  const colX = heading.x;
+  const bib = candidates.filter((l) => {
+    if (l.page > R) return true;
+    if (l.page < R) return false;
+    const colWidth = data.pageWidth / 2;
+    const sameCol = Math.abs(l.x - colX) < colWidth / 2;
+    return sameCol && l.y >= heading.y - 2;
+  });
+  if (bib.length < 3) return [];
+  const problems: Evidence[] = [];
+  const serif = bib.filter((l) => isSerifFamily(bibFamily(l.font)));
+  // The dominant family is the template's; anything outside it (and any
+  // sans/mono face at all) is a style violation.
+  const famCount = new Map<string, number>();
+  for (const l of serif) {
+    famCount.set(bibFamily(l.font), (famCount.get(bibFamily(l.font)) ?? 0) + 1);
+  }
+  const main = [...famCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  for (const l of bib) {
+    const fam = bibFamily(l.font);
+    if (!isSerifFamily(fam)) {
+      problems.push({
+        page: l.page,
+        detail: `Bibliography must use the template serif font, found '${l.font}' in: '${l.text.trim().slice(0, 50)}'`,
+        rect: lineRect(l),
+      });
+    } else if (main && fam !== main) {
+      problems.push({
+        page: l.page,
+        detail: `Bibliography font mixing: '${l.font}' outside dominant family '${main}' in: '${l.text.trim().slice(0, 50)}'`,
+        rect: lineRect(l),
+      });
+    }
+  }
+  return problems;
+}
+
+/** Near-black greys pass (antialiasing/print artefacts); real hues fail. */
+function isNearBlack(hex: string): boolean {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) return false;
+  const r = parseInt(m[1]!, 16);
+  const g = parseInt(m[2]!, 16);
+  const b = parseInt(m[3]!, 16);
+  return Math.max(r, g, b) <= 48 && Math.max(r, g, b) - Math.min(r, g, b) <= 8;
+}
+
+function colorProblems(data: PaperData): Evidence[] {
+  const colored = data.lines.filter((l) => l.color && !isNearBlack(l.color));
+  if (colored.length === 0) return [];
+  const pages = [...new Set(colored.map((l) => l.page))];
+  return [
+    {
+      page: pages[0],
+      detail:
+        `Coloured text (${colored[0]!.color}) on page(s) ${pages.join(", ")} — ` +
+        `text must be black; figures are exempt: '${colored[0]!.text.trim().slice(0, 50)}'`,
+      rect: lineRect(colored[0]!),
+    },
+  ];
 }
 
 /* --------------------------------- 8/9. fonts ---------------------------- */

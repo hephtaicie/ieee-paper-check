@@ -164,6 +164,54 @@
       "fonts_type3": "PASS"
     }
   },
+  "bad_style_colored": {
+    "file": "bad_style_colored.pdf",
+    "expected": {
+      "copyright": "PASS",
+      "appendix": "PASS",
+      "title": "PASS",
+      "artifact_appendix": "PASS",
+      "anonymized": "PASS",
+      "undefined_refs": "PASS",
+      "page_limit": "PASS",
+      "page_numbers": "PASS",
+      "fonts_embedded": "PASS",
+      "fonts_type3": "PASS",
+      "style": "FAIL"
+    }
+  },
+  "bad_style_size": {
+    "file": "bad_style_size.pdf",
+    "expected": {
+      "copyright": "PASS",
+      "appendix": "PASS",
+      "title": "PASS",
+      "artifact_appendix": "PASS",
+      "anonymized": "PASS",
+      "undefined_refs": "PASS",
+      "page_limit": "PASS",
+      "page_numbers": "PASS",
+      "fonts_embedded": "PASS",
+      "fonts_type3": "PASS",
+      "style": "FAIL"
+    }
+  },
+  "bad_style_bibfont": {
+    "file": "bad_style_bibfont.pdf",
+    "expected": {
+      "copyright": "PASS",
+      "appendix": "PASS",
+      "title": "PASS",
+      "artifact_appendix": "PASS",
+      "anonymized": "PASS",
+      "undefined_refs": "PASS",
+      "page_limit": "PASS",
+      "page_numbers": "PASS",
+      "fonts_embedded": "PASS",
+      "fonts_type3": "PASS",
+      "style": "FAIL"
+    }
+  },
   "bad_artifact": {
     "file": "bad_artifact.pdf",
     "expected": {
@@ -238,111 +286,6 @@
       "page_limit": "PASS",
       "page_numbers": "PASS",
       "fonts_embedded": "FAIL",
-      "fonts_type3": "PASS"
-    }
-  },
-  "good_word": {
-    "file": "good_word.pdf",
-    "expected": {
-      "copyright": "PASS",
-      "appendix": "PASS",
-      "title": "PASS",
-      "artifact_appendix": "PASS",
-      "anonymized": "PASS",
-      "undefined_refs": "PASS",
-      "page_limit": "PASS",
-      "page_numbers": "PASS",
-      "fonts_embedded": "PASS",
-      "fonts_type3": "PASS"
-    }
-  },
-  "bad_word_copyright": {
-    "file": "bad_word_copyright.pdf",
-    "expected": {
-      "copyright": "FAIL",
-      "appendix": "PASS",
-      "title": "PASS",
-      "artifact_appendix": "PASS",
-      "anonymized": "PASS",
-      "undefined_refs": "PASS",
-      "page_limit": "PASS",
-      "page_numbers": "PASS",
-      "fonts_embedded": "PASS",
-      "fonts_type3": "PASS"
-    }
-  },
-  "bad_word_title_case": {
-    "file": "bad_word_title_case.pdf",
-    "expected": {
-      "copyright": "PASS",
-      "appendix": "PASS",
-      "title": "FAIL",
-      "artifact_appendix": "PASS",
-      "anonymized": "PASS",
-      "undefined_refs": "PASS",
-      "page_limit": "PASS",
-      "page_numbers": "PASS",
-      "fonts_embedded": "PASS",
-      "fonts_type3": "PASS"
-    }
-  },
-  "bad_word_allcaps": {
-    "file": "bad_word_allcaps.pdf",
-    "expected": {
-      "copyright": "PASS",
-      "appendix": "PASS",
-      "title": "FAIL",
-      "artifact_appendix": "PASS",
-      "anonymized": "PASS",
-      "undefined_refs": "PASS",
-      "page_limit": "PASS",
-      "page_numbers": "PASS",
-      "fonts_embedded": "PASS",
-      "fonts_type3": "PASS"
-    }
-  },
-  "bad_word_smallcaps": {
-    "file": "bad_word_smallcaps.pdf",
-    "expected": {
-      "copyright": "PASS",
-      "appendix": "PASS",
-      "title": "FAIL",
-      "artifact_appendix": "PASS",
-      "anonymized": "PASS",
-      "undefined_refs": "PASS",
-      "page_limit": "PASS",
-      "page_numbers": "PASS",
-      "fonts_embedded": "PASS",
-      "fonts_type3": "PASS"
-    }
-  },
-  "bad_word_pagenumbers": {
-    "file": "bad_word_pagenumbers.pdf",
-    "expected": {
-      "copyright": "PASS",
-      "appendix": "PASS",
-      "title": "PASS",
-      "artifact_appendix": "PASS",
-      "anonymized": "PASS",
-      "undefined_refs": "PASS",
-      "page_limit": "PASS",
-      "page_numbers": "FAIL",
-      "fonts_embedded": "PASS",
-      "fonts_type3": "PASS"
-    }
-  },
-  "bad_word_anonymized": {
-    "file": "bad_word_anonymized.pdf",
-    "expected": {
-      "copyright": "PASS",
-      "appendix": "PASS",
-      "title": "PASS",
-      "artifact_appendix": "PASS",
-      "anonymized": "FAIL",
-      "undefined_refs": "PASS",
-      "page_limit": "PASS",
-      "page_numbers": "PASS",
-      "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
   }

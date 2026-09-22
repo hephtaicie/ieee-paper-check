@@ -10,6 +10,11 @@ interface TextItem {
   fontName: string;
 }
 
+/** Glyph of a showText op (pdf.js pre-resolves the font encoding). */
+interface ShowTextGlyph {
+  unicode?: string;
+}
+
 interface CompatFont {
   name: string;
   isType3Font: boolean;
@@ -25,6 +30,7 @@ interface LinePart {
   str: string;
   x: number;
   w: number;
+  color?: string;
 }
 
 interface LineAcc {
@@ -35,6 +41,7 @@ interface LineAcc {
   height: number;
   dominant: TextItem;
   dominantW: number;
+  color?: string;
 }
 
 function fontFromCommon(page: PageLike, ref: string): CompatFont | undefined {
@@ -72,6 +79,59 @@ export async function extractPaperData(bytes: Uint8Array): Promise<PaperData> {
     // Running the operator list first compiles every font used on the
     // page, so commonObjs lookups afterwards are resolved.
     const opList = await page.getOperatorList();
+
+    // --- per-run fill colors ---------------------------------------------
+    // The worker normalizes every fill-colour operator (rg, g, k, sc(n))
+    // to setFillRGBColor with a hex argument, so tracking just that op
+    // covers all colour spaces. Text inside Form XObjects (included
+    // figures) never reaches this op list, so it never counts as
+    // coloured body text. Rotated runs (y-axis labels of full-page
+    // figure sheets) are skipped: they reorder against the text items.
+    const LIGATURES: Record<string, string> = {
+      "\uFB00": "ff",
+      "\uFB01": "fi",
+      "\uFB02": "fl",
+      "\uFB03": "ffi",
+      "\uFB04": "ffl",
+    };
+    const runColors: (string | undefined)[] = [];
+    const runCharLens: number[] = [];
+    {
+      const SHOW = new Set([
+        pdfjs.OPS.showText,
+        pdfjs.OPS.showSpacedText,
+        pdfjs.OPS.nextLineShowText,
+        pdfjs.OPS.nextLineSetSpacingShowText,
+      ]);
+      let fill = "#000000";
+      for (let i = 0; i < opList.fnArray.length; i++) {
+        const fn = opList.fnArray[i]!;
+        if (fn === pdfjs.OPS.setFillRGBColor) {
+          const c = opList.argsArray[i]?.[0];
+          fill = typeof c === "string" ? c : "#000000";
+        } else if (fn === pdfjs.OPS.setFillTransparent) {
+          fill = "#000000";
+        } else if (SHOW.has(fn)) {
+          const arg = opList.argsArray[i]?.[0];
+          let str = "";
+          if (typeof arg === "string") str = arg;
+          else if (Array.isArray(arg)) {
+            for (const g of arg as (ShowTextGlyph | number)[]) {
+              if (typeof g === "number") continue; // kerning offset
+              if (g.unicode) str += g.unicode;
+            }
+          }
+          // Drop whitespace-only runs (absent from the text items) and
+          // ligature-expand so lengths match the item stream.
+          str = str.replace(/[\uFB00-\uFB04]/g, (m) => LIGATURES[m] ?? m);
+          if (str.trim().length > 0) {
+            runColors.push(fill);
+            runCharLens.push(str.replace(/\s+/g, "").length);
+          }
+        }
+      }
+    }
+
     const refs: string[] = [];
     for (let i = 0; i < opList.fnArray.length; i++) {
       if (opList.fnArray[i] === pdfjs.OPS.setFont) {
@@ -95,6 +155,29 @@ export async function extractPaperData(bytes: Uint8Array): Promise<PaperData> {
 
     // --- positioned text lines ------------------------------------------
     const tc = await page.getTextContent();
+    // Walk the show-text runs alongside the text items: both come from
+    // the same content stream in the same order. Whitespace-only runs
+    // never reach the items, and pdf.js may split one run into several
+    // items (synthetic spaces at kerning gaps), so runs are consumed
+    // greedily: an item takes characters from the current run until it
+    // is exhausted, then opens the next one. Each item inherits the
+    // colour of the run its FIRST character belongs to.
+    let runIdx = 0;
+    let runCharsLeft = 0;
+    let curColor: string | undefined;
+    const normLen = (s: string) => s.replace(/\s+/g, "").length;
+    const nextRunColor = (): string | undefined => {
+      if (runCharsLeft <= 0) {
+        if (runIdx >= runColors.length) return undefined;
+        curColor = runColors[runIdx]!;
+        runCharsLeft = runCharLens[runIdx]!;
+        runIdx++;
+      }
+      return curColor;
+    };
+    const consumeChars = (n: number): void => {
+      runCharsLeft -= n;
+    };
     let line: LineAcc | null = null;
     const flush = () => {
       if (line === null) return;
@@ -118,6 +201,7 @@ export async function extractPaperData(bytes: Uint8Array): Promise<PaperData> {
           h: line.height,
           font: f?.name ?? line.dominant.fontName,
           size: line.dominant.height,
+          color: line.color,
           pageWidth,
           pageHeight,
         });
@@ -128,6 +212,13 @@ export async function extractPaperData(bytes: Uint8Array): Promise<PaperData> {
     for (const raw of tc.items) {
       const tr = raw.transform;
       if (raw.str.trim().length === 0) continue;
+      // Non-empty, non-rotated items consume run characters. Rotated
+      // items (vertical axis labels) come out of order relative to the
+      // op list; skipping them keeps the streams aligned, and rotated
+      // text only appears on figure sheets anyway.
+      const rotated = Math.abs(tr[1] ?? 0) > 0.01 || Math.abs(tr[2] ?? 0) > 0.01;
+      const color = rotated ? undefined : nextRunColor();
+      if (!rotated) consumeChars(normLen(raw.str));
       const baseline = tr[5] ?? 0;
       const height = raw.height || Math.abs(tr[3] ?? 0) || 10;
       const x = tr[4] ?? 0;
@@ -137,23 +228,27 @@ export async function extractPaperData(bytes: Uint8Array): Promise<PaperData> {
         Math.abs(yTop - line.yTop) < 3 &&
         Math.abs(x - (line.x0 + line.width)) < 24;
       if (sameLine && line !== null) {
-        line.parts.push({ str: raw.str, x, w: raw.width });
+        line.parts.push({ str: raw.str, x, w: raw.width, color });
         const right = x + raw.width;
         if (right > line.x0 + line.width) line.width = right - line.x0;
         if (raw.width > line.dominantW) {
           line.dominant = raw;
           line.dominantW = raw.width;
         }
+        // A line keeps its first color; a run that differs (e.g. one red
+        // word inside a black line) wins so the line is not missed.
+        if (color && !line.color) line.color = color;
       } else {
         flush();
         line = {
-          parts: [{ str: raw.str, x, w: raw.width }],
+          parts: [{ str: raw.str, x, w: raw.width, color }],
           x0: x,
           yTop,
           width: raw.width,
           height,
           dominant: raw,
           dominantW: raw.width,
+          color,
         };
       }
     }

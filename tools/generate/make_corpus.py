@@ -324,6 +324,36 @@ VARIANTS_SPEC: dict[str, dict] = {
         "tex": render(n_blocks=60),
         "expected": {"page_limit": "FAIL"},
     },
+    # Style mutants: one violation each of the camera-ready style rules.
+    "bad_style_colored": {
+        "tex": render(n_blocks=6).replace(
+            "data-oblivious. We",
+            "data-oblivious. {\\color{red}Beware that checkpoint placement "
+            "must never be tuned on the evaluation trace, or the reported "
+            "speedup is optimistic.} We",
+            1,
+        ),
+        "expected": {"style": "FAIL"},
+    },
+    "bad_style_size": {
+        "tex": render(n_blocks=6, preamble="\\usepackage{xcolor}\n").replace(
+            "The smart-grid workload we target couples",
+            "{\\fontsize{9}{10.8}\\selectfont The smart-grid workload we target couples",
+            1,
+        ).replace(
+            "varies with the aggregated DER output. We model this as a parametrised",
+            "varies with the aggregated DER output.} We model this as a parametrised",
+            1,
+        ),
+        "expected": {"style": "FAIL"},
+    },
+    "bad_style_bibfont": {
+        "tex": render(n_blocks=6, preamble="\\usepackage{lmodern}\n").replace(
+            r"\begin{thebibliography}{00}",
+            r"\begin{thebibliography}{00}\sffamily",
+        ),
+        "expected": {"style": "FAIL"},
+    },
     "bad_artifact": {
         "tex": render(n_blocks=6, extra=ARTIFACT_EXTRA),
         "expected": {"artifact_appendix": "FAIL", "appendix": "FAIL"},

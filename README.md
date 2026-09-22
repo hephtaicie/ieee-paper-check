@@ -1,7 +1,7 @@
 # ieee-paper-check
 
 Offline validation of IEEE camera-ready conference papers, built from the
-feedback of conference program chairs. Ten automated checks run entirely on
+feedback of conference program chairs. Eleven automated checks run entirely on
 your machine — no PDF ever leaves it.
 
 ## Checks
@@ -16,8 +16,9 @@ your machine — no PDF ever leaves it.
 | 6 | No unresolved LaTeX references (`??` or `[?]`) |
 | 7 | Main content within 12 pages, references excluded (they may start on p13 and spill as far as needed) |
 | 8 | No page numbers in margins |
-| 9 | All fonts embedded |
-| 10 | No Type 3 fonts |
+| 9 | Style conformance: template font sizes (no squeezed sub-body text), bibliography in the template's serif font, no coloured text (figures are exempt) |
+| 10 | All fonts embedded |
+| 11 | No Type 3 fonts |
 
 All checks are hard failures, as required by the chairs. Every failure comes
 with evidence (page number, extracted text, font names) so a human can verify
