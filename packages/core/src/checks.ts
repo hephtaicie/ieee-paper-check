@@ -303,23 +303,17 @@ export function checkUndefinedRefs(data: PaperData): CheckResult {
 /* ------------------------------- 6. page limit --------------------------- */
 
 const REFS_HEADING_RE = /^references$/i;
-const BIB_ENTRY_RE = /^\[?\d+\]?/;
 
 function inMargin(l: PageLine): boolean {
   return l.y < 40 || l.y > l.pageHeight - 54;
 }
 
-function median(xs: number[]): number | null {
-  if (xs.length === 0) return null;
-  const s = [...xs].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)]!;
-}
-
 /**
- * Content must end by the page limit; references may spill past it.
- * Content = everything up to the References heading, plus any real
- * content after the bibliography (e.g. appendices), but NOT reference
- * continuation lines.
+ * The main content must fit within the page limit; references are
+ * excluded. Content = everything up to the References heading: page R
+ * counts as content only if body text appears above the heading there,
+ * otherwise content ended on page R-1. Everything after the heading
+ * (the bibliography, however far it spills) is not counted.
  */
 export function checkPageLimit(data: PaperData, config: Config): CheckResult {
   const heading = data.lines.find((l) => REFS_HEADING_RE.test(l.text.trim()));
@@ -332,39 +326,13 @@ export function checkPageLimit(data: PaperData, config: Config): CheckResult {
       `Content ends on page ${contentEnd}.`;
   } else {
     const R = heading.page;
-    const bibSizes = data.lines
-      .filter((l) => BIB_ENTRY_RE.test(l.text.trim()) && !inMargin(l))
-      .map((l) => l.size);
-    const bibSize = median(bibSizes) ?? 8;
-    contentEnd = R - 1;
-    for (let p = 1; p <= data.pageCount; p++) {
-      const lines = data.lines
-        .filter((l) => l.page === p && !inMargin(l))
-        .sort((a, b) => a.y - b.y || a.x - b.x);
-      if (lines.length === 0) continue;
-      if (p < R) {
-        contentEnd = p; // every pre-refs page is content
-      } else if (p === R) {
-        if (lines.some((l) => l.y < heading.y - 2 && !BIB_ENTRY_RE.test(l.text.trim()))) {
-          contentEnd = p; // body text above the References heading
-        }
-      } else {
-        // After the refs page: content resumes after a heading-like
-        // (larger-font) line; bib continuation lines do not count.
-        let seenHeading = false;
-        for (const l of lines) {
-          if (BIB_ENTRY_RE.test(l.text.trim())) continue;
-          if (!seenHeading && l.size >= bibSize + 1.0) seenHeading = true;
-          if (seenHeading) {
-            contentEnd = p;
-            break;
-          }
-        }
-      }
-    }
+    const bodyAboveHeading = data.lines.some(
+      (l) => l.page === R && l.y < heading.y - 2 && !inMargin(l),
+    );
+    contentEnd = bodyAboveHeading ? R : R - 1;
     detail =
       `References start on page ${R}; content ends on page ${contentEnd} ` +
-      `(limit ${config.pageLimit}).`;
+      `(limit ${config.pageLimit}, references excluded).`;
   }
   const status = contentEnd > config.pageLimit ? "FAIL" : "PASS";
   return result("page_limit", status, [{ detail: `${detail} Total pages: ${data.pageCount}.` }]);
