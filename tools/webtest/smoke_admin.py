@@ -79,24 +79,39 @@ def main() -> int:
         ok = ok and not checked and limit == "12"
 
         # Re-enable page_limit, drop the papers again, load the CSV and
-        # expect a mailto link for the invalid paper.
+        # expect a mailto button ON the invalid paper's card (not in a
+        # separate panel), with the template variables filled in.
         page.locator("#cfg-checks .cfg-row", has_text="Page limit").locator("input").check()
         drop(bad)
         page.locator("#csv-file").set_input_files(str(csv))
         page.wait_for_timeout(800)
-        rows = page.locator(".mailto-row").all()
-        href = page.locator(".mailto-row a").first.get_attribute("href") or ""
-        print("mailto rows:", len(rows), "| href head:", href[:60])
+        links = page.locator(".card-mailto a")
+        href = links.first.get_attribute("href") or ""
+        print("mailto buttons:", links.count(), "| href head:", href[:70])
         ok = (
             ok
+            and links.count() == 1
             and "pap104s3" in href
             and "a104@ex.org" in href
             and "b104@ex.org" in href
             and "mailto:" in href
         )
 
-        # good.pdf is valid: no mailto row for it.
-        ok = ok and all("good" not in r.inner_text() for r in rows)
+        # Template variables: {{title}} from the PDF, {{errors}} bullets.
+        # Open the template panel, edit the subject, expect the link to
+        # pick it up.
+        page.locator("#template-panel summary").click()
+        page.fill("#tpl-subject", "Fix {{id}} ({{title}})")
+        page.wait_for_timeout(300)
+        href = links.first.get_attribute("href") or ""
+        from urllib.parse import unquote
+
+        subj = href.split("subject=")[1].split("&")[0]
+        print("subject:", unquote(subj)[:80])
+        ok = ok and "pap104s3" in unquote(subj) and "Data-Aware" in unquote(subj)
+
+        # good.pdf is valid: no mailto footer on its card.
+        ok = ok and page.locator(".card.valid .card-mailto").count() == 0
 
         if errors:
             print("CONSOLE ERRORS:", errors[:5])

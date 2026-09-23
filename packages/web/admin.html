@@ -31,8 +31,30 @@
     </div>
   </details>
 
+  <details id="template-panel">
+    <summary>Email template (subject + body; <code>{{id}}</code>, <code>{{title}}</code>, <code>{{filename}}</code>, <code>{{errors}}</code>)</summary>
+    <div class="cfg">
+      <label class="cfg-limit">
+        Subject
+        <input id="tpl-subject" type="text" />
+      </label>
+      <label class="cfg-limit">
+        Body
+        <textarea id="tpl-body" rows="12"></textarea>
+      </label>
+      <p class="muted">
+        Placeholders: <code>{{id}}</code> submission id (from the CSV),
+        <code>{{title}}</code> paper title (from the PDF),
+        <code>{{filename}}</code> PDF file name, <code>{{errors}}</code>
+        failed checks as a bullet list, <code>{{url}}</code> public checker
+        URL. Saved in this browser; applies to all links below the reports.
+        <button id="tpl-reset" type="button" class="btn ghost">Reset</button>
+      </p>
+    </div>
+  </details>
+
   <details id="authors-panel">
-    <summary>Author list (CSV with <code>Submission</code> and <code>Emails</code> columns)</summary>
+    <summary>Author list (CSV with <code>Submission</code> and <code>Contact Emails</code> columns)</summary>
     <div class="cfg">
       <label class="cfg-limit">
         CSV file
@@ -42,11 +64,10 @@
       <p class="muted">
         Each PDF file name must contain the submission id (e.g.
         <code>pap104s3-file2.pdf</code> for submission <code>pap104s3</code>).
-        For every invalid paper with a match, a prefilled revision-request
-        mailto link listing all authors appears below the report. Opening it
-        launches your own mail client — nothing is sent by this page.
+        Invalid papers with a match get a prefilled revision-request mailto
+        button directly on their report card. Opening it launches your own
+        mail client — nothing is sent by this page.
       </p>
-      <div id="mailto-links"></div>
     </div>
   </details>
 

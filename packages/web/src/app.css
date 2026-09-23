@@ -261,6 +261,33 @@ footer ul {
   flex: 0 0 auto;
 }
 
+/* mailto button inside a report card (admin) */
+.card-mailto {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  padding: 0.55rem 1rem;
+  border-top: 1px dashed var(--line);
+  font-size: 0.88rem;
+}
+#tpl-body {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem;
+  font:
+    0.85rem / 1.4 ui-monospace,
+    monospace;
+}
+#tpl-subject {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.92rem;
+}
+
 @media (max-width: 640px) {
   .check {
     grid-template-columns: 1.2rem 1fr;

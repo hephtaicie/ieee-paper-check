@@ -114,6 +114,12 @@ function findTitle(data: PaperData): TitleAnalysis {
   };
 }
 
+/** Best-effort title extraction from page 1 (the same zone checkTitle
+ * validates). Empty when no title can be located. */
+export function paperTitle(data: PaperData): string {
+  return findTitle(data).text;
+}
+
 function casingProblems(words: string[], config: Config): Evidence[] {
   const problems: Evidence[] = [];
   if (words.length === 0) {

@@ -32,6 +32,8 @@ function esc(s: string): string {
 export interface App {
   readonly reports: PaperReport[];
   readonly pdfBytes: Map<string, Uint8Array>;
+  /** Rebuild the report cards from the stored reports. */
+  rerender(): void;
   /** Re-run every stored PDF under the current config and re-render. */
   revalidate(): Promise<void>;
   clear(): void;
@@ -39,11 +41,13 @@ export interface App {
 
 /** Shared dropzone/report UI used by both the public app and the admin
  * app. `getConfig` is consulted for every validation, so the admin page
- * can change the configuration dynamically; `onReportsChanged` fires
- * whenever the stored reports change (new files or revalidation). */
+ * can change the configuration dynamically. `augmentCard` decorates
+ * each report card after it is built (e.g. admin mailto buttons);
+ * `onReportsChanged` fires whenever the stored reports change. */
 export function mountApp(
   el: AppElements,
   getConfig: () => Config,
+  augmentCard?: (r: PaperReport, card: HTMLElement) => void,
   onReportsChanged?: () => void,
 ): App {
   const reports: PaperReport[] = [];
@@ -149,6 +153,7 @@ export function mountApp(
       grid.append(row);
     }
     card.append(grid);
+    augmentCard?.(r, card);
     return card;
   }
 
@@ -235,7 +240,13 @@ export function mountApp(
     onReportsChanged?.();
   }
 
-  return { reports, pdfBytes, revalidate, clear };
+  /** Rebuild the report cards from the stored reports (e.g. after an
+   * admin-side change to the email template or author list). */
+  function rerender(): void {
+    el.results.replaceChildren(...reports.map(reportCard));
+  }
+
+  return { reports, pdfBytes, rerender, revalidate, clear };
 }
 
 export { esc };

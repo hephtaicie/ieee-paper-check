@@ -67,6 +67,8 @@ export interface PaperData {
 
 export interface PaperReport {
   file: string;
+  /** Title extracted from page 1 (best effort, may be empty). */
+  title: string;
   pageCount: number;
   results: CheckResult[];
   valid: boolean;

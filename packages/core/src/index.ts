@@ -11,6 +11,7 @@ import {
   checkStyle,
   checkTitle,
   checkUndefinedRefs,
+  paperTitle,
 } from "./checks.ts";
 import { extractPaperData } from "./extract.ts";
 import type { CheckResult, Config, PaperData, PaperReport } from "./types.ts";
@@ -49,6 +50,7 @@ export async function validate(
   const results = runChecks(data, config);
   return {
     file,
+    title: paperTitle(data),
     pageCount: data.pageCount,
     results,
     valid: results.every((r) => r.status === "PASS"),

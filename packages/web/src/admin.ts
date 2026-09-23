@@ -14,12 +14,12 @@ function byId<T extends HTMLElement>(id: string): T {
 // localStorage so the settings survive reloads on the admin machine.
 // ---------------------------------------------------------------------------
 
-const STORE_KEY = "ieee-check-admin-config-v1";
+const CONFIG_KEY = "ieee-check-admin-config-v1";
 
 function loadAdminConfig(): Config {
   const base: Config = { ...DEFAULT_CONFIG, disabledChecks: [] };
   try {
-    const raw = localStorage.getItem(STORE_KEY);
+    const raw = localStorage.getItem(CONFIG_KEY);
     if (raw === null) return base;
     const saved = JSON.parse(raw) as Partial<Config>;
     return { ...base, ...saved };
@@ -29,10 +29,58 @@ function loadAdminConfig(): Config {
 }
 
 function saveAdminConfig(config: Config): void {
-  localStorage.setItem(STORE_KEY, JSON.stringify(config));
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
 }
 
 const config: Config = loadAdminConfig();
+
+// ---------------------------------------------------------------------------
+// Email template: subject + body with {{id}}, {{title}}, {{filename}} and
+// {{errors}} placeholders, persisted in localStorage.
+// ---------------------------------------------------------------------------
+
+const TEMPLATE_KEY = "ieee-check-admin-mail-template-v1";
+
+interface MailTemplate {
+  subject: string;
+  body: string;
+}
+
+const DEFAULT_TEMPLATE: MailTemplate = {
+  subject: "Camera-ready revision needed — submission {{id}}",
+  body:
+    "Dear authors,\n\n" +
+    "Our automated camera-ready check found issues in your submission " +
+    "(file {{filename}}, “{{title}}”). Please correct the following and " +
+    "upload a revised PDF:\n\n" +
+    "{{errors}}\n\n" +
+    "You can verify your revision yourself before re-uploading with the " +
+    "public checker (nothing is uploaded: the analysis runs in your " +
+    "browser):\n{{url}}\n\n" +
+    "Kind regards,\nThe publication chairs",
+};
+
+function loadTemplate(): MailTemplate {
+  try {
+    const raw = localStorage.getItem(TEMPLATE_KEY);
+    if (raw !== null) {
+      const saved = JSON.parse(raw) as Partial<MailTemplate>;
+      return {
+        subject: saved.subject ?? DEFAULT_TEMPLATE.subject,
+        body: saved.body ?? DEFAULT_TEMPLATE.body,
+      };
+    }
+  } catch {
+    // fall through to the default template
+  }
+  return { ...DEFAULT_TEMPLATE };
+}
+
+function saveTemplate(t: MailTemplate): void {
+  localStorage.setItem(TEMPLATE_KEY, JSON.stringify(t));
+}
+
+const template: MailTemplate = loadTemplate();
 
 // ---------------------------------------------------------------------------
 // Settings panel
@@ -72,15 +120,46 @@ byId<HTMLInputElement>("cfg-limit").addEventListener("change", (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Author list (CSV export with "Submission" and "Emails" columns) and
-// mailto reminders
+// Email template editor
+// ---------------------------------------------------------------------------
+
+function renderTemplateEditor(): void {
+  const subject = byId<HTMLInputElement>("tpl-subject");
+  const body = byId<HTMLTextAreaElement>("tpl-body");
+  subject.value = template.subject;
+  body.value = template.body;
+  const reset = byId<HTMLButtonElement>("tpl-reset");
+  reset.addEventListener("click", () => {
+    template.subject = DEFAULT_TEMPLATE.subject;
+    template.body = DEFAULT_TEMPLATE.body;
+    subject.value = template.subject;
+    body.value = template.body;
+    saveTemplate(template);
+    app.rerender();
+  });
+  for (const input of [subject, body] as const) {
+    input.addEventListener("input", () => {
+      template.subject = subject.value;
+      template.body = body.value;
+      saveTemplate(template);
+      app.rerender();
+    });
+  }
+}
+
+function fillTemplate(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{\{(\w+)\}\}/g, (m, key: string) => vars[key] ?? m);
+}
+
+// ---------------------------------------------------------------------------
+// Author list (CSV with "Submission" and "Contact Emails" columns)
 // ---------------------------------------------------------------------------
 
 /** Submission id -> author email list ("pap104s3" -> [a@x.org, b@y.org]). */
 const authors = new Map<string, string[]>();
 
 /** One CSV line -> cells, honouring double quotes (quoted cells may hold
- * commas, e.g. the comma-separated author list in "Emails"). */
+ * commas, e.g. the comma-separated author list in "Contact Emails"). */
 function csvCells(line: string): string[] {
   const cells: string[] = [];
   let cur = "";
@@ -115,8 +194,9 @@ function parseCsv(text: string): void {
   authors.clear();
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return;
-  // Column layout from the header: "Submission" and "Emails" by name;
-  // fall back to the first two columns when the header is absent.
+  // Column layout from the header: "Submission" and anything with
+  // "email" in it (the export says "Contact Emails"); fall back to the
+  // first two columns when the header is absent.
   const head = csvCells(lines[0]!).map((c) => c.toLowerCase());
   let idCol = head.findIndex((c) => c.includes("submission"));
   let mailCol = head.findIndex((c) => c.includes("email"));
@@ -139,20 +219,24 @@ function parseCsv(text: string): void {
   byId<HTMLSpanElement>("csv-count").textContent = String(authors.size);
 }
 
-function authorFor(file: string): string[] | undefined {
+function matchSubmission(file: string): { id: string; emails: string[] } | undefined {
   // File names are built from the submission id: "pap104s3-file2.pdf".
   // The longest matching id wins.
   const base = file.replace(/\.pdf$/i, "").toLowerCase();
-  let best: string[] | undefined;
+  let best: { id: string; emails: string[] } | undefined;
   let bestLen = 0;
   for (const [id, emails] of authors) {
     if (base.includes(id.toLowerCase()) && id.length > bestLen) {
-      best = emails;
+      best = { id, emails };
       bestLen = id.length;
     }
   }
   return best;
 }
+
+// ---------------------------------------------------------------------------
+// Mailto button inside each invalid report card
+// ---------------------------------------------------------------------------
 
 function failuresFor(r: PaperReport): string {
   return r.results
@@ -164,56 +248,34 @@ function failuresFor(r: PaperReport): string {
     .join("\n");
 }
 
-function mailtoFor(r: PaperReport): { href: string; emails: string[]; id: string } | null {
-  const emails = authorFor(r.file);
-  if (emails === undefined || emails.length === 0 || r.valid) return null;
-  // The file name is the submission id plus an upload suffix.
-  const id = r.file.replace(/\.pdf$/i, "").replace(/[-_].*$/, "");
-  const subject = `Camera-ready revision needed — submission ${id}`;
-  const body =
-    `Dear authors,\n\n` +
-    `Our automated camera-ready check found issues in your submission ` +
-    `(${r.file}). Please correct the following and upload a revised PDF:\n\n` +
-    `${failuresFor(r)}\n\n` +
-    `You can verify your revision yourself before re-uploading with the ` +
-    `public checker (nothing is uploaded: the analysis runs in your browser):\n` +
-    `${location.href.replace(/admin\.html.*$/, "")}\n\n` +
-    `Kind regards,\nThe publication chairs`;
-  return {
-    href: `mailto:${emails.join(",")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
-    emails,
-    id,
-  };
-}
-
-function renderMailtoColumn(): void {
-  const links = byId<HTMLDivElement>("mailto-links");
-  links.replaceChildren();
-  for (const r of app.reports) {
-    if (r.valid) continue;
-    const row = document.createElement("div");
-    row.className = "mailto-row";
-    const match = mailtoFor(r);
-    if (match === null) {
-      row.innerHTML = `<span class="fname">${esc(r.file)}</span> <span class="muted">no matching submission id in the CSV</span>`;
-    } else {
-      row.innerHTML = `<span class="fname">${esc(r.file)}</span> → <span class="muted">${esc(match.emails.join(", "))}</span>`;
-      const a = document.createElement("a");
-      a.className = "btn";
-      a.href = match.href;
-      a.textContent = "✉ Email authors";
-      row.append(a);
-    }
-    links.append(row);
+function augmentCard(r: PaperReport, card: HTMLElement): void {
+  if (r.valid) return;
+  const footer = document.createElement("div");
+  footer.className = "card-mailto";
+  const match = matchSubmission(r.file);
+  if (match === undefined) {
+    footer.innerHTML = `<span class="muted">No matching submission id in the CSV — no email link.</span>`;
+  } else {
+    const vars: Record<string, string> = {
+      id: match.id,
+      title: r.title || r.file,
+      filename: r.file,
+      errors: failuresFor(r),
+      url: location.href.replace(/admin\.html.*$/, ""),
+    };
+    const href =
+      `mailto:${match.emails.join(",")}` +
+      `?subject=${encodeURIComponent(fillTemplate(template.subject, vars))}` +
+      `&body=${encodeURIComponent(fillTemplate(template.body, vars))}`;
+    footer.innerHTML = `<span class="muted">→ ${esc(match.emails.join(", "))}</span>`;
+    const a = document.createElement("a");
+    a.className = "btn";
+    a.href = href;
+    a.textContent = "✉ Email authors";
+    footer.append(a);
   }
+  card.append(footer);
 }
-
-byId<HTMLInputElement>("csv-file").addEventListener("change", async (e) => {
-  const f = (e.target as HTMLInputElement).files?.[0];
-  if (f === undefined) return;
-  parseCsv(await f.text());
-  renderMailtoColumn();
-});
 
 // ---------------------------------------------------------------------------
 // Wire everything together
@@ -237,6 +299,14 @@ const el: AppElements = {
   vHl: byId<HTMLDivElement>("v-hl"),
 };
 
-const app: App = mountApp(el, () => config, renderMailtoColumn);
+const app: App = mountApp(el, () => config, augmentCard);
+
+byId<HTMLInputElement>("csv-file").addEventListener("change", async (e) => {
+  const f = (e.target as HTMLInputElement).files?.[0];
+  if (f === undefined) return;
+  parseCsv(await f.text());
+  app.rerender();
+});
 
 renderSettings();
+renderTemplateEditor();
