@@ -24,7 +24,7 @@ def main() -> int:
     csv = Path(tempfile.mkdtemp()) / "papers.csv"
     # Real export shape: quoted "Emails" cell with a comma-separated list.
     csv.write_text(
-        'Submission,Title,Emails\n'
+        'Submission,Title,Contact Emails\n'
         '"pap104s3","Some title","a104@ex.org,b104@ex.org"\n'
         '"pap200x1","Other title","c200@ex.org"\n'
     )
