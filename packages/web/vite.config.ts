@@ -19,10 +19,17 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,woff2}"],
+        navigateFallbackDenylist: [/^\/admin\.html$/],
       },
     }),
   ],
   build: {
     target: "es2022",
+    rollupOptions: {
+      input: {
+        index: "index.html",
+        admin: "admin.html",
+      },
+    },
   },
 });

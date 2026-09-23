@@ -43,6 +43,12 @@ Drop one or many PDFs onto the page; download the CSV report for batches.
 The app is a PWA: once loaded it works fully offline, and the analysis
 always stays inside the browser tab.
 
+`admin.html` (same domain, `/admin.html`) is the chairs' version of the
+same app. It adds a configuration panel (page limit, per-check
+enable/disable, persisted in the browser) and accepts a `papers.csv`
+(`paperid,email`) to generate prefilled `mailto:` revision-request links
+for every invalid paper. Files never leave the browser there either.
+
 ### CLI (chairs' batch)
 
 ```sh

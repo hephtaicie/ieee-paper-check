@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>IEEE camera-ready checker — chairs</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%230b3d91'/%3E%3Cpath d='M28 30h44M28 50h30M28 70h38' stroke='white' stroke-width='9' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./src/app.css" />
+</head>
+<body>
+  <header>
+    <h1>IEEE camera-ready checker — chairs</h1>
+    <p class="tagline">
+      Admin page: configure the checks for this round, validate submissions and
+      draft the revision-request emails.
+      <strong>Everything still runs locally in this page.</strong>
+      Public page: <a href="./">IEEE camera-ready checker</a>.
+    </p>
+  </header>
+
+  <details id="admin-panel" open>
+    <summary>Round configuration</summary>
+    <div class="cfg">
+      <label class="cfg-limit">
+        Page limit
+        <input id="cfg-limit" type="number" min="1" max="99" />
+        <span class="muted">pages of main content (references excluded)</span>
+      </label>
+      <div id="cfg-checks"></div>
+    </div>
+  </details>
+
+  <details id="authors-panel">
+    <summary>Author list (papers.csv: <code>paperid,email</code>)</summary>
+    <div class="cfg">
+      <label class="cfg-limit">
+        CSV file
+        <input id="csv-file" type="file" accept=".csv,text/csv" />
+        <span class="muted"><span id="csv-count">0</span> papers loaded</span>
+      </label>
+      <p class="muted">
+        For every invalid paper whose file name contains a paper id present in
+        the CSV, a prefilled "request revision" mailto link appears below the
+        report. Opening it launches your own mail client — nothing is sent by
+        this page.
+      </p>
+      <div id="mailto-links"></div>
+    </div>
+  </details>
+
+  <button id="dropzone" type="button" aria-label="Choose or drop PDF files">
+    <div class="dz-inner">
+      <div class="dz-icon">📄</div>
+      <div class="dz-text">
+        <span class="dz-main">Drop one or more PDFs here</span>
+        <span class="dz-alt">or click to choose files</span>
+      </div>
+    </div>
+  </button>
+  <input id="file-input" type="file" accept="application/pdf" multiple hidden />
+
+  <div id="actions" hidden>
+    <span id="summary"></span>
+    <button id="csv-btn" type="button" class="btn">Download CSV</button>
+    <button id="clear-btn" type="button" class="btn ghost">Clear</button>
+  </div>
+
+  <main id="results"></main>
+
+  <footer>
+    <p class="license">MIT license · runs locally, offline-capable once loaded</p>
+  </footer>
+
+  <dialog id="viewer" aria-label="PDF viewer">
+    <div class="v-head">
+      <span id="v-title"></span>
+      <span class="v-nav">
+        <button type="button" id="v-prev" aria-label="Previous page">‹</button>
+        <span id="v-page"></span>
+        <button type="button" id="v-next" aria-label="Previous page">›</button>
+      </span>
+      <button type="button" id="v-close" aria-label="Close viewer">✕</button>
+    </div>
+    <div class="v-body">
+      <div id="v-stage">
+        <canvas id="v-canvas"></canvas>
+        <div id="v-hl" hidden></div>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="module" src="./src/admin.ts"></script>
+</body>
+</html>
