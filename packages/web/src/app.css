@@ -196,7 +196,8 @@ footer ul {
 
 /* admin page */
 #admin-panel,
-#authors-panel {
+#authors-panel,
+#template-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -204,7 +205,8 @@ footer ul {
   margin-bottom: 0.9rem;
 }
 #admin-panel summary,
-#authors-panel summary {
+#authors-panel summary,
+#template-panel summary {
   cursor: pointer;
   font-weight: 600;
   color: var(--ink);
