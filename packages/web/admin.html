@@ -32,18 +32,19 @@
   </details>
 
   <details id="authors-panel">
-    <summary>Author list (papers.csv: <code>paperid,email</code>)</summary>
+    <summary>Author list (CSV with <code>Submission</code> and <code>Emails</code> columns)</summary>
     <div class="cfg">
       <label class="cfg-limit">
         CSV file
         <input id="csv-file" type="file" accept=".csv,text/csv" />
-        <span class="muted"><span id="csv-count">0</span> papers loaded</span>
+        <span class="muted"><span id="csv-count">0</span> submissions loaded</span>
       </label>
       <p class="muted">
-        For every invalid paper whose file name contains a paper id present in
-        the CSV, a prefilled "request revision" mailto link appears below the
-        report. Opening it launches your own mail client — nothing is sent by
-        this page.
+        Each PDF file name must contain the submission id (e.g.
+        <code>pap104s3-file2.pdf</code> for submission <code>pap104s3</code>).
+        For every invalid paper with a match, a prefilled revision-request
+        mailto link listing all authors appears below the report. Opening it
+        launches your own mail client — nothing is sent by this page.
       </p>
       <div id="mailto-links"></div>
     </div>

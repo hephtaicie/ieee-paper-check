@@ -22,7 +22,12 @@ GOOD = ROOT / "corpus/pdfs/good.pdf"
 
 def main() -> int:
     csv = Path(tempfile.mkdtemp()) / "papers.csv"
-    csv.write_text("paperid,email\n42,author42@example.org\n")
+    # Real export shape: quoted "Emails" cell with a comma-separated list.
+    csv.write_text(
+        'Submission,Title,Emails\n'
+        '"pap104s3","Some title","a104@ex.org,b104@ex.org"\n'
+        '"pap200x1","Other title","c200@ex.org"\n'
+    )
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -41,7 +46,7 @@ def main() -> int:
             return [c.locator(".badge").inner_text() for c in page.locator(".card").all()]
 
         # Paper id 42 in the file name so the CSV matches.
-        bad = Path(tempfile.mkdtemp()) / "paper_42.pdf"
+        bad = Path(tempfile.mkdtemp()) / "pap104s3-file2.pdf"
         bad.write_bytes(PDF.read_bytes())
         drop(bad)
         print("default badges:", badges())
@@ -82,7 +87,13 @@ def main() -> int:
         rows = page.locator(".mailto-row").all()
         href = page.locator(".mailto-row a").first.get_attribute("href") or ""
         print("mailto rows:", len(rows), "| href head:", href[:60])
-        ok = ok and "42" in href and "author42@example.org" in href and "mailto:" in href
+        ok = (
+            ok
+            and "pap104s3" in href
+            and "a104@ex.org" in href
+            and "b104@ex.org" in href
+            and "mailto:" in href
+        )
 
         # good.pdf is valid: no mailto row for it.
         ok = ok and all("good" not in r.inner_text() for r in rows)

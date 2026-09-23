@@ -72,27 +72,86 @@ byId<HTMLInputElement>("cfg-limit").addEventListener("change", (e) => {
 });
 
 // ---------------------------------------------------------------------------
-// Author list (papers.csv: paperid,email[,name]) and mailto reminders
+// Author list (CSV export with "Submission" and "Emails" columns) and
+// mailto reminders
 // ---------------------------------------------------------------------------
 
-const authors = new Map<string, string>();
+/** Submission id -> author email list ("pap104s3" -> [a@x.org, b@y.org]). */
+const authors = new Map<string, string[]>();
+
+/** One CSV line -> cells, honouring double quotes (quoted cells may hold
+ * commas, e.g. the comma-separated author list in "Emails"). */
+function csvCells(line: string): string[] {
+  const cells: string[] = [];
+  let cur = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]!;
+    if (quoted) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          quoted = false;
+        }
+      } else {
+        cur += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === "," || ch === ";") {
+      cells.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  cells.push(cur.trim());
+  return cells;
+}
 
 function parseCsv(text: string): void {
   authors.clear();
-  for (const line of text.split(/\r?\n/)) {
-    const cells = line.split(/[,;]/).map((c) => c.trim());
-    if (cells.length < 2) continue;
-    // Skip a header row ("paper", "email", ...).
-    if (!/^#?\d+$/.test(cells[0]!) || !cells[1]!.includes("@")) continue;
-    authors.set(cells[0]!, cells[1]!);
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return;
+  // Column layout from the header: "Submission" and "Emails" by name;
+  // fall back to the first two columns when the header is absent.
+  const head = csvCells(lines[0]!).map((c) => c.toLowerCase());
+  let idCol = head.findIndex((c) => c.includes("submission"));
+  let mailCol = head.findIndex((c) => c.includes("email"));
+  if (idCol === -1 || mailCol === -1) {
+    idCol = 0;
+    mailCol = 1;
+  }
+  const start = idCol === 0 && mailCol === 1 && head[0]!.includes("submission") ? 1 : 0;
+  for (const line of lines.slice(start)) {
+    const cells = csvCells(line);
+    const id = cells[idCol] ?? "";
+    const emailCell = cells[mailCol] ?? "";
+    if (id.length === 0 || !emailCell.includes("@")) continue;
+    const emails = emailCell
+      .split(/[,;]+/)
+      .map((e) => e.trim())
+      .filter((e) => e.includes("@"));
+    if (emails.length > 0) authors.set(id, emails);
   }
   byId<HTMLSpanElement>("csv-count").textContent = String(authors.size);
 }
 
-function authorFor(file: string): string | undefined {
-  // File names usually carry the paper id: "42.pdf", "paper_0042_v2.pdf".
-  const m = /(\d{1,4})/.exec(file.replace(/\.pdf$/i, ""));
-  return m ? authors.get(String(Number.parseInt(m[1]!, 10))) : undefined;
+function authorFor(file: string): string[] | undefined {
+  // File names are built from the submission id: "pap104s3-file2.pdf".
+  // The longest matching id wins.
+  const base = file.replace(/\.pdf$/i, "").toLowerCase();
+  let best: string[] | undefined;
+  let bestLen = 0;
+  for (const [id, emails] of authors) {
+    if (base.includes(id.toLowerCase()) && id.length > bestLen) {
+      best = emails;
+      bestLen = id.length;
+    }
+  }
+  return best;
 }
 
 function failuresFor(r: PaperReport): string {
@@ -105,12 +164,14 @@ function failuresFor(r: PaperReport): string {
     .join("\n");
 }
 
-function mailtoFor(r: PaperReport): string | null {
-  const to = authorFor(r.file);
-  if (to === undefined || r.valid) return null;
-  const subject = `Camera-ready revision needed — paper ${r.file.replace(/\.pdf$/i, "")}`;
+function mailtoFor(r: PaperReport): { href: string; emails: string[]; id: string } | null {
+  const emails = authorFor(r.file);
+  if (emails === undefined || emails.length === 0 || r.valid) return null;
+  // The file name is the submission id plus an upload suffix.
+  const id = r.file.replace(/\.pdf$/i, "").replace(/[-_].*$/, "");
+  const subject = `Camera-ready revision needed — submission ${id}`;
   const body =
-    `Dear author,\n\n` +
+    `Dear authors,\n\n` +
     `Our automated camera-ready check found issues in your submission ` +
     `(${r.file}). Please correct the following and upload a revised PDF:\n\n` +
     `${failuresFor(r)}\n\n` +
@@ -118,7 +179,11 @@ function mailtoFor(r: PaperReport): string | null {
     `public checker (nothing is uploaded: the analysis runs in your browser):\n` +
     `${location.href.replace(/admin\.html.*$/, "")}\n\n` +
     `Kind regards,\nThe publication chairs`;
-  return `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  return {
+    href: `mailto:${emails.join(",")}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+    emails,
+    id,
+  };
 }
 
 function renderMailtoColumn(): void {
@@ -128,14 +193,14 @@ function renderMailtoColumn(): void {
     if (r.valid) continue;
     const row = document.createElement("div");
     row.className = "mailto-row";
-    const href = mailtoFor(r);
-    if (href === null) {
-      row.innerHTML = `<span class="fname">${esc(r.file)}</span> <span class="muted">no matching email in the CSV (id not found)</span>`;
+    const match = mailtoFor(r);
+    if (match === null) {
+      row.innerHTML = `<span class="fname">${esc(r.file)}</span> <span class="muted">no matching submission id in the CSV</span>`;
     } else {
-      row.innerHTML = `<span class="fname">${esc(r.file)}</span> → <span class="muted">${esc(authorFor(r.file) ?? "")}</span>`;
+      row.innerHTML = `<span class="fname">${esc(r.file)}</span> → <span class="muted">${esc(match.emails.join(", "))}</span>`;
       const a = document.createElement("a");
       a.className = "btn";
-      a.href = href;
+      a.href = match.href;
       a.textContent = "✉ Email authors";
       row.append(a);
     }
