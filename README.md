@@ -24,11 +24,37 @@ All checks are hard failures, as required by the chairs. Every failure comes
 with evidence (page number, extracted text, font names) so a human can verify
 at a glance.
 
+## Capabilities and limitations
+
+What the checks do well:
+
+- Full local analysis (no upload), fast enough for whole batches.
+- Both authoring tracks: LaTeX (IEEEtran) and the IEEE Word template
+  converted to PDF.
+- Every failure points at concrete evidence instead of a bare verdict.
+- Configuration per conference/round: page limit and check list (CLI config
+  file; admin page for the web).
+
+What it cannot do (classical, geometry-only tier):
+
+- The small-caps-with-lowercase-text-layer case described below (planned
+  model tier).
+- Semantics: it does not judge whether a reference is *relevant*, whether
+  the title *makes sense*, or whether figures are readable — a human still
+  reviews the evidence.
+- Content inside figures is mostly out of scope: the coloured-text check
+  only sees text drawn in the page content stream, so embedded figures
+  (the common case) are exempt by construction; small font differences of
+  figure-internal labels are not measured.
+- Subtle single-word font tampering (e.g. one paragraph set smaller) can
+  slip through the size check, which looks at dominant sizes; a page-level
+  cheat (whole page shrunk) is caught.
+
 ## Usage
 
-### Web app (authors + chairs)
+### Web app
 
-Hosted on GitHub Pages: <https://fabiendanieau.github.io/ieee-paper-check/>
+Hosted on GitHub Pages: <https://hephtaicie.github.io/ieee-paper-check/>
 
 Or run it locally:
 
@@ -39,15 +65,28 @@ pnpm --filter @ieee-check/web preview
 ```
 
 or deploy to GitHub Pages (workflow in `.github/workflows/deploy.yml`).
-Drop one or many PDFs onto the page; download the CSV report for batches.
 The app is a PWA: once loaded it works fully offline, and the analysis
 always stays inside the browser tab.
 
-`admin.html` (same domain, `/admin.html`) is the chairs' version of the
-same app. It adds a configuration panel (page limit, per-check
-enable/disable, persisted in the browser) and accepts a `papers.csv`
-(`paperid,email`) to generate prefilled `mailto:` revision-request links
-for every invalid paper. Files never leave the browser there either.
+**Authors' page** (`/`) — drop one or many PDFs onto the page; every check
+runs locally and each failure shows its evidence (page, extracted text,
+font name); clicking a failed row opens the PDF page with a highlight box
+around the offending text. A CSV report can be downloaded for batches.
+
+**Chairs' page** (`/admin.html`) — the same verification UI plus admin
+tooling that regular users do not see:
+
+- *Round configuration*: set the page limit and enable/disable individual
+  checks; the change applies immediately to the loaded PDFs and is kept in
+  the browser between sessions.
+- *Author list*: import the submission site's CSV export (columns
+  `Submission` and `Contact Emails`) — PDF file names containing a
+  submission id (e.g. `pap104s3-file2.pdf`) are matched to it.
+- *Email template*: an editable subject/body with `{{id}}`, `{{title}}`
+  (extracted from the PDF), `{{filename}}`, `{{errors}}` (bullet list of
+  failed checks) and `{{url}}` placeholders; invalid papers get a prefilled
+  revision-request `mailto:` button on their report card. Opening it
+  launches your own mail client — nothing is sent by the page.
 
 ### CLI (chairs' batch)
 
@@ -151,3 +190,10 @@ git lfs pull      # if the clone predates LFS or LFS was missing
 MIT (see LICENSE). The PDF engine is [pdf.js](https://mozilla.github.io/pdf.js/)
 (Apache-2.0). All code in this repository is original and MIT-licensed; the
 engine is a declared dependency, not vendored.
+
+## Credits
+
+Built from the feedback of conference publication chairs.
+
+- [Fabien Danieau](https://www.linkedin.com/in/fabiendanieau/)
+- [François Tessier](https://www.francoistessier.info/)
