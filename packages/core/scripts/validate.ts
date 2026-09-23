@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_CONFIG, validate } from "../src/index.ts";
+import type { Config } from "../src/types.ts";
 
 const ROOT = new URL("../../../", import.meta.url).pathname;
 const PDFS = join(ROOT, "corpus", "pdfs");
@@ -15,9 +16,9 @@ const GT = JSON.parse(readFileSync(join(ROOT, "corpus", "ground-truth.json"), "u
   }
 >;
 
-// Corpus config: every classical check on, plus the not-yet-default style
-// check so its mutants keep being exercised (0 FP / 0 FN requirement).
-const config = { ...DEFAULT_CONFIG, styleCheck: true };
+// Corpus config: every classical check on, including the not-yet-default
+// style check, so its mutants keep being exercised (0 FP / 0 FN).
+const config: Config = { ...DEFAULT_CONFIG, disabledChecks: [] };
 
 // First: smoke test on one good paper to catch extraction crashes
 const good = await validate(

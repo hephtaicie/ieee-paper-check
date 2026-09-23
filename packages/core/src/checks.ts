@@ -393,12 +393,10 @@ export function checkPageNumbers(data: PaperData): CheckResult {
  *  2. The bibliography must be set in the template's serif font.
  *  3. No coloured text in the paper (figures are exempt).
  *
- * Gated behind config.styleCheck: implemented but not enforced yet.
+ * Not in the default disabledChecks list means it runs and can fail a
+ * paper; see Config.disabledChecks.
  */
-export function checkStyle(data: PaperData, config: Config): CheckResult {
-  if (!config.styleCheck) {
-    return result("style", "PASS", []);
-  }
+export function checkStyle(data: PaperData): CheckResult {
   const problems: Evidence[] = [];
   problems.push(...sizeProblems(data));
   problems.push(...bibFontProblems(data));

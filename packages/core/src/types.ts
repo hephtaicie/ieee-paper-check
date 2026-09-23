@@ -78,15 +78,17 @@ export interface Config {
   acronyms: string[];
   /** Appendices are forbidden in the paper body (submitted separately). */
   forbidAppendices: boolean;
-  /** Style conformance check (sizes, bibliography font, coloured text).
-   * Implemented but not enabled by default yet. */
-  styleCheck: boolean;
+  /** Checks not to run at all: no report row, never affects validity.
+   * Overridable per conference/round through a --config JSON file. */
+  disabledChecks: CheckId[];
 }
 
 export const DEFAULT_CONFIG: Config = {
   pageLimit: 12,
   forbidAppendices: true,
-  styleCheck: false,
+  // Implemented but not enforced yet; enable it with a config file that
+  // passes an empty disabledChecks list.
+  disabledChecks: ["style"],
   smallWords: [
     "a",
     "an",

@@ -48,12 +48,13 @@ export function renderHtml(reports: PaperReport[], generated: string): string {
       const cells = ids
         .map((id) => {
           const c = r.results.find((x: CheckResult) => x.id === id);
-          const cls = c?.status === "PASS" ? "pass" : "fail";
+          if (c === undefined) return '<td class="pass"></td>'; // disabled
+          const cls = c.status === "PASS" ? "pass" : "fail";
           const tip =
-            c?.status === "FAIL"
+            c.status === "FAIL"
               ? ` title="${esc(c.evidence.map((e) => e.detail).join(" | "))}"`
               : "";
-          return `<td class="${cls}"${tip}>${c?.status === "PASS" ? "✔" : "✘"}</td>`;
+          return `<td class="${cls}"${tip}>${c.status === "PASS" ? "✔" : "✘"}</td>`;
         })
         .join("");
       const evidence = r.valid

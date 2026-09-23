@@ -19,9 +19,11 @@ import { DEFAULT_CONFIG } from "./types.ts";
 export * from "./report.ts";
 export * from "./types.ts";
 
-/** Run all checks on already-extracted paper data. */
+/** Run all checks on already-extracted paper data. Disabled checks
+ * (config.disabledChecks) produce no result row and never affect
+ * validity. */
 export function runChecks(data: PaperData, config: Config = DEFAULT_CONFIG): CheckResult[] {
-  return [
+  const results = [
     checkCopyright(data),
     checkTitle(data, config),
     checkArtifactAppendix(data),
@@ -30,10 +32,11 @@ export function runChecks(data: PaperData, config: Config = DEFAULT_CONFIG): Che
     checkUndefinedRefs(data),
     checkPageLimit(data, config),
     checkPageNumbers(data),
-    checkStyle(data, config),
+    checkStyle(data),
     checkFontsEmbedded(data),
     checkFontsType3(data),
   ];
+  return results.filter((r) => !config.disabledChecks.includes(r.id));
 }
 
 /** Extract + validate a paper PDF from raw bytes. */

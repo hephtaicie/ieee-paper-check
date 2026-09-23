@@ -95,7 +95,8 @@ function reportCard(r: PaperReport): HTMLElement {
   const grid = document.createElement("div");
   grid.className = "checks";
   for (const id of CHECK_ORDER) {
-    const c = r.results.find((x) => x.id === id)!;
+    const c = r.results.find((x) => x.id === id);
+    if (c === undefined) continue; // disabled via config: no row at all
     const row = document.createElement("div");
     row.className = `check ${c.status.toLowerCase()}`;
     const label = CHECK_LABELS[id];

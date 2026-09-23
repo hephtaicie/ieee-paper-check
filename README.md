@@ -16,7 +16,7 @@ your machine — no PDF ever leaves it.
 | 6 | No unresolved LaTeX references (`??` or `[?]`) |
 | 7 | Main content within 12 pages, references excluded (they may start on p13 and spill as far as needed) |
 | 8 | No page numbers in margins |
-| 9 | Style conformance: template font sizes (no squeezed sub-body text), bibliography in the template's serif font, no coloured text (figures are exempt) — implemented, opt-in via `"styleCheck": true` in the config, not enforced yet |
+| 9 | Style conformance: template font sizes (no squeezed sub-body text), bibliography in the template's serif font, no coloured text (figures are exempt) — implemented but disabled by default (`disabledChecks` in the config) |
 | 10 | All fonts embedded |
 | 11 | No Type 3 fonts |
 
@@ -50,8 +50,27 @@ node packages/cli/src/main.ts papers/ --csv report.csv --html report.html
 ```
 
 Requires Node ≥ 22.18 (built-in TypeScript stripping). Exit code 0 when
-every paper is valid. `--config config.json` overrides `pageLimit`,
-`acronyms`, `smallWords`, `forbidAppendices` per conference.
+every paper is valid.
+
+`--config config.json` overrides any `DEFAULT_CONFIG` field per
+conference/check round. The two fields you will most likely touch:
+
+```json
+{
+  "pageLimit": 10,
+  "disabledChecks": ["page_limit", "style"]
+}
+```
+
+- `pageLimit` — maximum number of pages the main content may span
+  (references are always excluded, whatever the limit).
+- `disabledChecks` — check ids to skip entirely: they produce no report
+  row and never affect the verdict. Available ids: `copyright`,
+  `title`, `artifact_appendix`, `appendix`, `anonymized`,
+  `undefined_refs`, `page_limit`, `page_numbers`, `style`,
+  `fonts_embedded`, `fonts_type3`. Ship a config without the key (or
+  with an empty list) to run everything, including the not-yet-enforced
+  style check.
 
 ## Repo layout
 
