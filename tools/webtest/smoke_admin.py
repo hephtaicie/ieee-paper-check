@@ -69,14 +69,33 @@ def main() -> int:
         print("page_limit disabled:", badges(), "| has page_limit row:", any("Page limit" in l for l in labels))
         ok = ok and badges() == ["✓ VALID", "✓ VALID"] and not any("Page limit" in l for l in labels)
 
+        # Minimum content page limit: set max=20, then the 6-page good paper
+        # fails at min=7 and passes at min=4; references are excluded.
+        page.locator("#cfg-checks .cfg-row", has_text="Page limit").locator("input").check()
+        page.fill("#cfg-limit", "20")
+        page.locator("#cfg-limit").dispatch_event("change")
+        page.wait_for_timeout(700)
+        page.fill("#cfg-min-limit", "7")
+        page.locator("#cfg-min-limit").dispatch_event("change")
+        page.wait_for_timeout(800)
+        print("min-7 badges:", badges())
+        ok = ok and badges() == ["✓ VALID", "✗ INVALID"]
+        page.fill("#cfg-min-limit", "4")
+        page.locator("#cfg-min-limit").dispatch_event("change")
+        page.wait_for_timeout(800)
+        ok = ok and badges() == ["✓ VALID", "✓ VALID"]
+        page.fill("#cfg-limit", "12")
+        page.locator("#cfg-limit").dispatch_event("change")
+        page.wait_for_timeout(700)
+
         # Settings persist across reload (the reports do not: PDFs live in
-        # memory only). After reload the page_limit checkbox stays unchecked.
+        # memory only).
         page.reload()
         page.wait_for_load_state("networkidle")
-        checked = page.locator("#cfg-checks .cfg-row", has_text="Page limit").locator("input").is_checked()
+        min_limit = page.locator("#cfg-min-limit").input_value()
         limit = page.locator("#cfg-limit").input_value()
-        print("persists after reload: unchecked =", not checked, "limit =", limit)
-        ok = ok and not checked and limit == "12"
+        print("limits persist after reload:", min_limit, limit)
+        ok = ok and min_limit == "4" and limit == "12"
 
         # Re-enable page_limit, drop the papers again, load the CSV and
         # expect a mailto button ON the invalid paper's card (not in a
@@ -112,6 +131,21 @@ def main() -> int:
 
         # good.pdf is valid: no mailto footer on its card.
         ok = ok and page.locator(".card.valid .card-mailto").count() == 0
+
+        # Allow AD/AE: it no longer fails, but the card shows an informational
+        # notice; disabling appendix checks keeps this test focused on AD/AE.
+        page.locator("#cfg-checks .cfg-row", has_text="No AD/AE appendix").locator("input").uncheck()
+        page.locator("#cfg-checks .cfg-row", has_text="No appendix in paper").locator("input").uncheck()
+        page.locator("#cfg-checks .cfg-row", has_text="Page limit").locator("input").uncheck()
+        page.locator("#cfg-artifact").check()
+        page.wait_for_timeout(500)
+        adae = Path(tempfile.mkdtemp()) / "adae.pdf"
+        adae.write_bytes((ROOT / "corpus/pdfs/bad_artifact.pdf").read_bytes())
+        page.locator("#clear-btn").click()
+        drop(adae)
+        notice = page.locator(".info-notice").inner_text()
+        print("AD/AE notice:", notice)
+        ok = ok and "Informational" in notice and page.locator(".card.invalid").count() == 0
 
         if errors:
             print("CONSOLE ERRORS:", errors[:5])

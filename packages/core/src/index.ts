@@ -11,6 +11,7 @@ import {
   checkStyle,
   checkTitle,
   checkUndefinedRefs,
+  hasArtifactAppendix,
   paperTitle,
 } from "./checks.ts";
 import { extractPaperData } from "./extract.ts";
@@ -25,9 +26,9 @@ export * from "./types.ts";
  * validity. */
 export function runChecks(data: PaperData, config: Config = DEFAULT_CONFIG): CheckResult[] {
   const results = [
-    checkCopyright(data),
+    checkCopyright(data, config),
     checkTitle(data, config),
-    checkArtifactAppendix(data),
+    checkArtifactAppendix(data, config),
     checkAppendix(data, config),
     checkAnonymized(data),
     checkUndefinedRefs(data),
@@ -51,6 +52,7 @@ export async function validate(
   return {
     file,
     title: paperTitle(data),
+    artifactAppendixPresent: hasArtifactAppendix(data),
     pageCount: data.pageCount,
     results,
     valid: results.every((r) => r.status === "PASS"),

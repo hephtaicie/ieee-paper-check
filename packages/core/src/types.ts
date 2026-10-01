@@ -69,13 +69,19 @@ export interface PaperReport {
   file: string;
   /** Title extracted from page 1 (best effort, may be empty). */
   title: string;
+  /** Whether an Artifact Description/Evaluation section was found, even if
+   * allowed for this round. */
+  artifactAppendixPresent: boolean;
   pageCount: number;
   results: CheckResult[];
   valid: boolean;
 }
 
 export interface Config {
+  minPageLimit: number;
   pageLimit: number;
+  requiredCopyright: string | null;
+  allowArtifactAppendix: boolean;
   smallWords: string[];
   acronyms: string[];
   /** Appendices are forbidden in the paper body (submitted separately). */
@@ -86,7 +92,10 @@ export interface Config {
 }
 
 export const DEFAULT_CONFIG: Config = {
+  minPageLimit: 4,
   pageLimit: 12,
+  requiredCopyright: null,
+  allowArtifactAppendix: false,
   forbidAppendices: true,
   // Implemented but not enforced yet; enable it with a config file that
   // passes an empty disabledChecks list.

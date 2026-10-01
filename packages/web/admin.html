@@ -22,10 +22,24 @@
   <details id="admin-panel" open>
     <summary>Round configuration</summary>
     <div class="cfg">
-      <label class="cfg-limit">
-        Page limit
-        <input id="cfg-limit" type="number" min="1" max="99" />
-        <span class="muted">pages of main content (references excluded)</span>
+      <div class="cfg-page-range">
+        <label class="cfg-limit">
+          Minimum pages
+          <input id="cfg-min-limit" type="number" min="1" max="99" />
+        </label>
+        <label class="cfg-limit">
+          Maximum pages
+          <input id="cfg-limit" type="number" min="1" max="99" />
+        </label>
+        <span class="muted">main content only; references excluded</span>
+      </div>
+      <label class="cfg-row">
+        <input id="cfg-artifact" type="checkbox" />
+        Allow Artifact Description/Evaluation sections (show an informational notice on matching papers)
+      </label>
+      <label class="cfg-limit cfg-copyright">
+        Required copyright text
+        <input id="cfg-copyright" type="text" placeholder="Leave blank to accept any valid IEEE copyright" />
       </label>
       <div id="cfg-checks"></div>
     </div>

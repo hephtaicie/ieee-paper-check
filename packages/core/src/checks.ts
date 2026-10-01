@@ -39,7 +39,7 @@ const COPYYEAR_RE = /(©|\(c\)|copyright)\s*\d{4}/i;
 const IEEE_RE = /\bIEEE\b/;
 const PLACEHOLDER_RE = /X{2,3}[- ]X[- ]X{4}[- ]X{4}[- ]X\/XX\/\$XX\.00/;
 
-export function checkCopyright(data: PaperData): CheckResult {
+export function checkCopyright(data: PaperData, config: Config): CheckResult {
   const H = data.pageHeight;
   const zone = data.lines.filter(
     (l) => l.page === 1 && l.y > H * 0.85 && l.x < data.pageWidth * 0.5,
@@ -55,18 +55,23 @@ export function checkCopyright(data: PaperData): CheckResult {
       },
     ]);
   }
-  const ok =
+  const standardValid =
     ISBN_RE.test(joined) &&
     PRICE_RE.test(joined) &&
     COPYYEAR_RE.test(joined) &&
     IEEE_RE.test(joined);
+  const requiredFound =
+    config.requiredCopyright === null || joined.includes(config.requiredCopyright);
+  const ok = config.requiredCopyright === null ? standardValid : requiredFound;
   if (ok) return result("copyright", "PASS", []);
   return result("copyright", "FAIL", [
     {
       page: 1,
       detail:
-        "No complete IEEE copyright block found in the bottom-left corner of page 1 " +
-        "(expected e.g. 978-1-6654-1234-5/25/$31.00 © 2025 IEEE)",
+        config.requiredCopyright !== null && standardValid && !requiredFound
+          ? `Copyright block does not match the required text: '${config.requiredCopyright}'`
+          : "No complete IEEE copyright block found in the bottom-left corner of page 1 " +
+            "(expected e.g. 978-1-6654-1234-5/25/$31.00 © 2025 IEEE)",
       rect: {
         x: 36,
         y: H * 0.85,
@@ -224,9 +229,13 @@ export function checkTitle(data: PaperData, config: Config): CheckResult {
 
 const ARTIFACT_RE = /\bartifacts?\s+(description|evaluation|appendix|badges?)/i;
 
-export function checkArtifactAppendix(data: PaperData): CheckResult {
+export function hasArtifactAppendix(data: PaperData): boolean {
+  return data.lines.some((l) => ARTIFACT_RE.test(l.text));
+}
+
+export function checkArtifactAppendix(data: PaperData, config: Config): CheckResult {
   const hits = data.lines.filter((l) => ARTIFACT_RE.test(l.text));
-  if (hits.length === 0) {
+  if (hits.length === 0 || config.allowArtifactAppendix) {
     return result("artifact_appendix", "PASS", []);
   }
   return result("artifact_appendix", "FAIL", [
@@ -346,7 +355,17 @@ export function checkPageLimit(data: PaperData, config: Config): CheckResult {
       `References start on page ${R}; content ends on page ${contentEnd} ` +
       `(limit ${config.pageLimit}, references excluded).`;
   }
-  const status = contentEnd > config.pageLimit ? "FAIL" : "PASS";
+  const status =
+    contentEnd > config.pageLimit || contentEnd < config.minPageLimit ? "FAIL" : "PASS";
+  const range = `${config.minPageLimit}–${config.pageLimit}`;
+  if (heading) {
+    detail = detail.replace(
+      `(limit ${config.pageLimit}, references excluded)`,
+      `(allowed ${range}, references excluded)`,
+    );
+  } else {
+    detail += ` Allowed content length: ${range} pages.`;
+  }
   return result("page_limit", status, [{ detail: `${detail} Total pages: ${data.pageCount}.` }]);
 }
 

@@ -17,7 +17,14 @@ function byId<T extends HTMLElement>(id: string): T {
 const CONFIG_KEY = "ieee-check-admin-config-v1";
 
 function loadAdminConfig(): Config {
-  const base: Config = { ...DEFAULT_CONFIG, disabledChecks: [] };
+  const base: Config = {
+    ...DEFAULT_CONFIG,
+    disabledChecks: [],
+    minPageLimit: 4,
+    pageLimit: 12,
+    allowArtifactAppendix: false,
+    requiredCopyright: null,
+  };
   try {
     const raw = localStorage.getItem(CONFIG_KEY);
     if (raw === null) return base;
@@ -87,8 +94,12 @@ const template: MailTemplate = loadTemplate();
 // ---------------------------------------------------------------------------
 
 function renderSettings(): void {
+  const minLimit = byId<HTMLInputElement>("cfg-min-limit");
   const limit = byId<HTMLInputElement>("cfg-limit");
+  minLimit.value = String(config.minPageLimit);
   limit.value = String(config.pageLimit);
+  byId<HTMLInputElement>("cfg-artifact").checked = config.allowArtifactAppendix;
+  byId<HTMLInputElement>("cfg-copyright").value = config.requiredCopyright ?? "";
   const rows = byId<HTMLDivElement>("cfg-checks");
   rows.replaceChildren();
   for (const id of CHECK_ORDER) {
@@ -110,13 +121,31 @@ function renderSettings(): void {
   }
 }
 
+function updateLimit(field: "minPageLimit" | "pageLimit", value: string): void {
+  const v = Number.parseInt(value, 10);
+  if (!Number.isFinite(v) || v < 1) return;
+  config[field] = v;
+  saveAdminConfig(config);
+  void app.revalidate();
+}
+
+byId<HTMLInputElement>("cfg-min-limit").addEventListener("change", (e) => {
+  updateLimit("minPageLimit", (e.target as HTMLInputElement).value);
+});
 byId<HTMLInputElement>("cfg-limit").addEventListener("change", (e) => {
-  const v = Number.parseInt((e.target as HTMLInputElement).value, 10);
-  if (Number.isFinite(v) && v > 0) {
-    config.pageLimit = v;
-    saveAdminConfig(config);
-    void app.revalidate();
-  }
+  updateLimit("pageLimit", (e.target as HTMLInputElement).value);
+});
+
+byId<HTMLInputElement>("cfg-artifact").addEventListener("change", (e) => {
+  config.allowArtifactAppendix = (e.target as HTMLInputElement).checked;
+  saveAdminConfig(config);
+  void app.revalidate();
+});
+byId<HTMLInputElement>("cfg-copyright").addEventListener("change", (e) => {
+  const value = (e.target as HTMLInputElement).value.trim();
+  config.requiredCopyright = value || null;
+  saveAdminConfig(config);
+  void app.revalidate();
 });
 
 // ---------------------------------------------------------------------------
@@ -249,6 +278,12 @@ function failuresFor(r: PaperReport): string {
 }
 
 function augmentCard(r: PaperReport, card: HTMLElement): void {
+  if (r.artifactAppendixPresent && config.allowArtifactAppendix) {
+    const notice = document.createElement("div");
+    notice.className = "info-notice";
+    notice.textContent = "Informational: an Artifact Description/Evaluation section was detected.";
+    card.append(notice);
+  }
   if (r.valid) return;
   const footer = document.createElement("div");
   footer.className = "card-mailto";

@@ -14,7 +14,7 @@ your machine — no PDF ever leaves it.
 | 4 | No appendix inside the paper (appendices are submitted separately) |
 | 5 | Paper is de-anonymized (no "Anonymous Author(s)", no "Paper ID") |
 | 6 | No unresolved LaTeX references (`??` or `[?]`) |
-| 7 | Main content within 12 pages, references excluded (they may start on p13 and spill as far as needed) |
+| 7 | Main content is at least 4 and at most 12 pages by default, references excluded (both limits are configurable) |
 | 8 | No page numbers in margins |
 | 9 | Style conformance: template font sizes (no squeezed sub-body text), bibliography in the template's serif font, no coloured text (figures are exempt) — implemented but disabled by default (`disabledChecks` in the config) |
 | 10 | All fonts embedded |
@@ -76,9 +76,11 @@ around the offending text. A CSV report can be downloaded for batches.
 **Chairs' page** (`/admin.html`) — the same verification UI plus admin
 tooling that regular users do not see:
 
-- *Round configuration*: set the page limit and enable/disable individual
-  checks; the change applies immediately to the loaded PDFs and is kept in
-  the browser between sessions.
+- *Round configuration*: set minimum/maximum content pages (default 4/12;
+  references excluded), enable/disable checks, allow AD/AE sections (still
+  detected and shown as an informational notice on matching papers), and
+  optionally require a specific page-1 copyright notice. Changes recheck
+  loaded PDFs immediately and are saved in the browser between sessions.
 - *Author list*: import the submission site's CSV export (columns
   `Submission` and `Contact Emails`) — PDF file names containing a
   submission id (e.g. `pap104s3-file2.pdf`) are matched to it.
@@ -98,24 +100,30 @@ Requires Node ≥ 22.18 (built-in TypeScript stripping). Exit code 0 when
 every paper is valid.
 
 `--config config.json` overrides any `DEFAULT_CONFIG` field per
-conference/check round. The two fields you will most likely touch:
+conference/check round. Example:
 
 ```json
 {
-  "pageLimit": 10,
-  "disabledChecks": ["page_limit", "style"]
+  "minPageLimit": 4,
+  "pageLimit": 12,
+  "allowArtifactAppendix": false,
+  "requiredCopyright": "978-1-6654-1234-5/25/$31.00 © 2025 IEEE",
+  "disabledChecks": ["style"]
 }
 ```
 
-- `pageLimit` — maximum number of pages the main content may span
-  (references are always excluded, whatever the limit).
+- `minPageLimit` / `pageLimit` — minimum / maximum main-content pages
+  (defaults: 4 / 12; references are excluded).
+- `allowArtifactAppendix` — allow AD/AE content. It is still detected and
+  reported informatively in the admin UI, but does not fail the paper.
+- `requiredCopyright` — require this exact text somewhere in the page-1
+  copyright zone; `null` accepts any IEEE-format notice.
 - `disabledChecks` — check ids to skip entirely: they produce no report
   row and never affect the verdict. Available ids: `copyright`,
   `title`, `artifact_appendix`, `appendix`, `anonymized`,
   `undefined_refs`, `page_limit`, `page_numbers`, `style`,
-  `fonts_embedded`, `fonts_type3`. Ship a config without the key (or
-  with an empty list) to run everything, including the not-yet-enforced
-  style check.
+  `fonts_embedded`, `fonts_type3`. Use an empty list to run all checks,
+  including the not-yet-enforced style check.
 
 ## Repo layout
 
