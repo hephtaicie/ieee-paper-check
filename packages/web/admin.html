@@ -25,7 +25,7 @@
       <div class="cfg-page-range">
         <label class="cfg-limit">
           Minimum pages
-          <input id="cfg-min-limit" type="number" min="1" max="99" />
+          <input id="cfg-min-limit" type="number" min="0" max="99" />
         </label>
         <label class="cfg-limit">
           Maximum pages
@@ -33,6 +33,7 @@
         </label>
         <span class="muted">main content only; references excluded</span>
       </div>
+      <p class="muted">These settings start from the deployed shared configuration. Changes here override it only in this browser.</p>
       <label class="cfg-row">
         <input id="cfg-artifact" type="checkbox" />
         Allow Artifact Description/Evaluation sections (show an informational notice on matching papers)
@@ -41,6 +42,7 @@
         Required copyright text
         <input id="cfg-copyright" type="text" placeholder="Leave blank to accept any valid IEEE copyright" />
       </label>
+      <p class="muted">Deploy-time defaults for both pages are configured in <code>packages/web/site-config.json</code>.</p>
       <div id="cfg-checks"></div>
     </div>
   </details>
@@ -61,7 +63,8 @@
         <code>{{title}}</code> paper title (from the PDF),
         <code>{{filename}}</code> PDF file name, <code>{{errors}}</code>
         failed checks as a bullet list, <code>{{url}}</code> public checker
-        URL. Saved in this browser; applies to all links below the reports.
+        URL. Deployment defaults come from <code>site-config.json</code>; edits
+        here apply only in this browser until the deployed template changes.
         <button id="tpl-reset" type="button" class="btn ghost">Reset</button>
       </p>
     </div>

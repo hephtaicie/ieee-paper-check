@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
-import { DEFAULT_CONFIG } from "@ieee-check/core";
 import { type AppElements, mountApp } from "./app.ts";
+import { sharedSiteConfig } from "./site-config.ts";
 
 function byId<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -26,4 +26,7 @@ const el: AppElements = {
   vHl: byId<HTMLDivElement>("v-hl"),
 };
 
-mountApp(el, () => DEFAULT_CONFIG);
+const siteConfig = sharedSiteConfig();
+const policy = byId<HTMLParagraphElement>("site-policy");
+policy.textContent = `This round allows ${siteConfig.minPageLimit}–${siteConfig.pageLimit} main-content pages; references are excluded.`;
+mountApp(el, () => siteConfig);

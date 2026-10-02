@@ -35,6 +35,9 @@ def main() -> int:
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.goto("http://localhost:4173/")
         page.wait_for_load_state("networkidle")
+        policy = page.locator("#site-policy").inner_text()
+        print("shared policy:", policy)
+        ok = "4" in policy and "12" in policy
         page.locator("#file-input").set_input_files([str(f) for f in FILES])
         page.wait_for_selector(".card", timeout=60000)
         page.wait_for_timeout(1500)

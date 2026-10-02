@@ -1,0 +1,11 @@
+{
+  "minPageLimit": 4,
+  "pageLimit": 12,
+  "allowArtifactAppendix": false,
+  "requiredCopyright": null,
+  "disabledChecks": ["style"],
+  "emailTemplate": {
+    "subject": "SC26 {{id}}: Camera-ready Revision Required",
+    "body": "Dear Authors,\n\nPlease note that your paper is currently scheduled to be published under the title \"{{title}}\". To finalize the Proceedings, all of the papers have been reviewed to ensure conformance to the SC26 Proceedings Instructions to authors, including consistency between your final paper, metadata submission, and copyright transfer. During this review, we have found that your paper has one or more problems that need to be addressed immediately. Your paper violates the specified requirements in the following area(s):\n\n{{errors}}\n\nFor your reference, the instructions to authors that were linked on stage 3 of Linklings are available directly here: \nhttps://submissions.supercomputing.org/static_resources/SC26_Instructions_for_Workshop_Authors.pdf\n\nYou can verify your revision yourself before re-uploading with this public checker (nothing is uploaded: the analysis runs in your browser):\n{{url}}\n\nThe SC submissions site will be re-open today for you. Please re-upload the revised paper and source zip file only, and do not modify other elements like the metadata. This must be completed as soon as possible. We may not be able to include your paper in the Proceedings if these problems are not rectified quickly.\n\nIf you are unable to submit the revised copy, please make sure one of your coauthors will do it for you. Let us know when the new upload has been completed. Please note that you will only be allowed one upload. After that, the submission period will close again.\n\nWith kind regards,\nSwann Perarnau, Hermes Senger, François Tessier, SC26 Proceedings Chairs\nproceedings@info.supercomputing.org"
+  }
+}

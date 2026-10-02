@@ -36,6 +36,9 @@ def main() -> int:
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.goto("http://localhost:4173/admin.html")
         page.wait_for_load_state("networkidle")
+        shared = page.locator("#cfg-min-limit").input_value() == "4" and page.locator("#cfg-limit").input_value() == "12"
+        print("admin defaults match shared config:", shared)
+        ok = shared
 
         def drop(bad_file: Path) -> None:
             page.locator("#file-input").set_input_files([str(bad_file), str(GOOD)])

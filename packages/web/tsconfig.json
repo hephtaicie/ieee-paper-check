@@ -8,7 +8,8 @@
     "noEmit": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "types": ["vite-plugin-pwa/client"]
+    "types": ["vite-plugin-pwa/client"],
+    "resolveJsonModule": true
   },
   "include": ["src", "vite.config.ts"]
 }

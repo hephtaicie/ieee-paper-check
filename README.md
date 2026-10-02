@@ -71,7 +71,8 @@ always stays inside the browser tab.
 **Authors' page** (`/`) — drop one or many PDFs onto the page; every check
 runs locally and each failure shows its evidence (page, extracted text,
 font name); clicking a failed row opens the PDF page with a highlight box
-around the offending text. A CSV report can be downloaded for batches.
+around the offending text. The page also displays the deployed page-count
+policy. A CSV report can be downloaded for batches.
 
 **Chairs' page** (`/admin.html`) — the same verification UI plus admin
 tooling that regular users do not see:
@@ -89,6 +90,36 @@ tooling that regular users do not see:
   failed checks) and `{{url}}` placeholders; invalid papers get a prefilled
   revision-request `mailto:` button on their report card. Opening it
   launches your own mail client — nothing is sent by the page.
+
+### Shared web configuration
+
+Both web pages use `packages/web/site-config.json` as their deployed
+configuration. Edit that file, commit and push to `main`; the Pages workflow
+builds both pages with those settings. Both pages share one policy. Chairs'
+localStorage overrides are browser-local and reset automatically when the
+deployed shared configuration changes. The file can also define the default
+admin email subject and body:
+
+```json
+{
+  "minPageLimit": 4,
+  "pageLimit": 12,
+  "allowArtifactAppendix": false,
+  "requiredCopyright": null,
+  "disabledChecks": ["style"],
+  "emailTemplate": {
+    "subject": "Revision required for {{id}}",
+    "body": "Dear authors,\\n\\nPlease address these issues:\\n\\n{{errors}}\\n\\nPaper: {{title}}\\nFile: {{filename}}\\n\\n{{url}}"
+  }
+}
+```
+
+Email placeholders: `{{id}}` (submission id), `{{title}}`, `{{filename}}`,
+`{{errors}}` (failed checks as a bullet list), and `{{url}}` (public checker).
+This config is public, so do not put secrets in it. Admin email-template edits
+are browser-local; they reset to the deployed template when it changes.
+Chairs' round-setting overrides are likewise local and reset when the shared
+round configuration changes.
 
 ### CLI (chairs' batch)
 

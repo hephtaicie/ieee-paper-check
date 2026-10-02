@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 import type { Config, PaperReport } from "@ieee-check/core";
-import { CHECK_LABELS, CHECK_ORDER, DEFAULT_CONFIG } from "@ieee-check/core";
+import { CHECK_LABELS, CHECK_ORDER } from "@ieee-check/core";
 import { type App, type AppElements, esc, mountApp } from "./app.ts";
+import type { MailTemplate } from "./mail-template.ts";
+import { SITE_EMAIL_TEMPLATE, sharedSiteConfig } from "./site-config.ts";
 
 function byId<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -15,21 +17,20 @@ function byId<T extends HTMLElement>(id: string): T {
 // ---------------------------------------------------------------------------
 
 const CONFIG_KEY = "ieee-check-admin-config-v1";
+const CONFIG_BASE_KEY = "ieee-check-admin-config-base-v1";
 
 function loadAdminConfig(): Config {
-  const base: Config = {
-    ...DEFAULT_CONFIG,
-    disabledChecks: [],
-    minPageLimit: 4,
-    pageLimit: 12,
-    allowArtifactAppendix: false,
-    requiredCopyright: null,
-  };
+  const base = sharedSiteConfig();
+  const baseFingerprint = JSON.stringify(base);
   try {
     const raw = localStorage.getItem(CONFIG_KEY);
-    if (raw === null) return base;
-    const saved = JSON.parse(raw) as Partial<Config>;
-    return { ...base, ...saved };
+    const savedBase = localStorage.getItem(CONFIG_BASE_KEY);
+    if (raw === null || savedBase !== baseFingerprint) {
+      localStorage.setItem(CONFIG_BASE_KEY, baseFingerprint);
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(base));
+      return base;
+    }
+    return { ...base, ...(JSON.parse(raw) as Partial<Config>) };
   } catch {
     return base;
   }
@@ -37,6 +38,7 @@ function loadAdminConfig(): Config {
 
 function saveAdminConfig(config: Config): void {
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+  localStorage.setItem(CONFIG_BASE_KEY, JSON.stringify(sharedSiteConfig()));
 }
 
 const config: Config = loadAdminConfig();
@@ -47,44 +49,33 @@ const config: Config = loadAdminConfig();
 // ---------------------------------------------------------------------------
 
 const TEMPLATE_KEY = "ieee-check-admin-mail-template-v1";
+const TEMPLATE_BASE_KEY = "ieee-check-admin-mail-template-base-v1";
 
-interface MailTemplate {
-  subject: string;
-  body: string;
-}
-
-const DEFAULT_TEMPLATE: MailTemplate = {
-  subject: "Camera-ready revision needed — submission {{id}}",
-  body:
-    "Dear authors,\n\n" +
-    "Our automated camera-ready check found issues in your submission " +
-    "(file {{filename}}, “{{title}}”). Please correct the following and " +
-    "upload a revised PDF:\n\n" +
-    "{{errors}}\n\n" +
-    "You can verify your revision yourself before re-uploading with the " +
-    "public checker (nothing is uploaded: the analysis runs in your " +
-    "browser):\n{{url}}\n\n" +
-    "Kind regards,\nThe publication chairs",
-};
+const DEFAULT_TEMPLATE: MailTemplate = SITE_EMAIL_TEMPLATE;
+const TEMPLATE_FINGERPRINT = JSON.stringify(DEFAULT_TEMPLATE);
 
 function loadTemplate(): MailTemplate {
   try {
     const raw = localStorage.getItem(TEMPLATE_KEY);
-    if (raw !== null) {
-      const saved = JSON.parse(raw) as Partial<MailTemplate>;
-      return {
-        subject: saved.subject ?? DEFAULT_TEMPLATE.subject,
-        body: saved.body ?? DEFAULT_TEMPLATE.body,
-      };
+    const savedBase = localStorage.getItem(TEMPLATE_BASE_KEY);
+    if (raw === null || savedBase !== TEMPLATE_FINGERPRINT) {
+      localStorage.setItem(TEMPLATE_BASE_KEY, TEMPLATE_FINGERPRINT);
+      localStorage.setItem(TEMPLATE_KEY, JSON.stringify(DEFAULT_TEMPLATE));
+      return { ...DEFAULT_TEMPLATE };
     }
+    const saved = JSON.parse(raw) as Partial<MailTemplate>;
+    return {
+      subject: saved.subject ?? DEFAULT_TEMPLATE.subject,
+      body: saved.body ?? DEFAULT_TEMPLATE.body,
+    };
   } catch {
-    // fall through to the default template
+    return { ...DEFAULT_TEMPLATE };
   }
-  return { ...DEFAULT_TEMPLATE };
 }
 
 function saveTemplate(t: MailTemplate): void {
   localStorage.setItem(TEMPLATE_KEY, JSON.stringify(t));
+  localStorage.setItem(TEMPLATE_BASE_KEY, TEMPLATE_FINGERPRINT);
 }
 
 const template: MailTemplate = loadTemplate();
