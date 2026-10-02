@@ -60,8 +60,10 @@ export function checkCopyright(data: PaperData, config: Config): CheckResult {
     PRICE_RE.test(joined) &&
     COPYYEAR_RE.test(joined) &&
     IEEE_RE.test(joined);
+  const normalizeCopyright = (text: string) => text.replace(/\s+/g, " ").trim();
   const requiredFound =
-    config.requiredCopyright === null || joined.includes(config.requiredCopyright);
+    config.requiredCopyright === null ||
+    normalizeCopyright(joined).includes(normalizeCopyright(config.requiredCopyright));
   const ok = config.requiredCopyright === null ? standardValid : requiredFound;
   if (ok) return result("copyright", "PASS", []);
   return result("copyright", "FAIL", [

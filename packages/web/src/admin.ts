@@ -90,7 +90,7 @@ function renderSettings(): void {
   minLimit.value = String(config.minPageLimit);
   limit.value = String(config.pageLimit);
   byId<HTMLInputElement>("cfg-artifact").checked = config.allowArtifactAppendix;
-  byId<HTMLInputElement>("cfg-copyright").value = config.requiredCopyright ?? "";
+  byId<HTMLTextAreaElement>("cfg-copyright").value = config.requiredCopyright ?? "";
   const rows = byId<HTMLDivElement>("cfg-checks");
   rows.replaceChildren();
   for (const id of CHECK_ORDER) {
@@ -132,8 +132,8 @@ byId<HTMLInputElement>("cfg-artifact").addEventListener("change", (e) => {
   saveAdminConfig(config);
   void app.revalidate();
 });
-byId<HTMLInputElement>("cfg-copyright").addEventListener("change", (e) => {
-  const value = (e.target as HTMLInputElement).value.trim();
+byId<HTMLTextAreaElement>("cfg-copyright").addEventListener("change", (e) => {
+  const value = (e.target as HTMLTextAreaElement).value.trim();
   config.requiredCopyright = value || null;
   saveAdminConfig(config);
   void app.revalidate();

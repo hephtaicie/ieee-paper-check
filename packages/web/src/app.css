@@ -240,7 +240,8 @@ footer ul {
   gap: 0.9rem;
   flex-wrap: wrap;
 }
-.cfg-copyright input {
+.cfg-copyright input,
+.cfg-copyright textarea {
   flex: 1;
   min-width: 16rem;
   border: 1px solid var(--line);
