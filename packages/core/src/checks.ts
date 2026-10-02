@@ -35,7 +35,17 @@ function startsWithUpper(w: string): boolean {
 
 const ISBN_RE = /9\d{2}[- ]\d{1,6}[- ]\d{4}[- ]\d{4}[- ]\d/;
 const PRICE_RE = /\/\d{2}\/\$\d{2}\.\d{2}/;
-const COPYYEAR_RE = /(©|\(c\)|copyright)\s*\d{4}/i;
+const COPYYEAR_RE = /©\s*\d{4}/i;
+const COPYRIGHT_MARK_RE = /©|Ⓒ|ⓒ|🄒|⒞|c\u20dd|\(\s*c\s*\)|\bcopyright\b/gi;
+
+function canonicalCopyright(text: string): string {
+  return text
+    .replace(COPYRIGHT_MARK_RE, "©")
+    .normalize("NFKC")
+    .replace(/\s+/g, " ")
+    .replace(/©\s+(?=\d{4})/g, "©")
+    .trim();
+}
 const IEEE_RE = /\bIEEE\b/;
 const PLACEHOLDER_RE = /X{2,3}[- ]X[- ]X{4}[- ]X{4}[- ]X\/XX\/\$XX\.00/;
 
@@ -55,15 +65,15 @@ export function checkCopyright(data: PaperData, config: Config): CheckResult {
       },
     ]);
   }
+  const canonicalJoined = canonicalCopyright(joined);
   const standardValid =
     ISBN_RE.test(joined) &&
     PRICE_RE.test(joined) &&
-    COPYYEAR_RE.test(joined) &&
+    COPYYEAR_RE.test(canonicalJoined) &&
     IEEE_RE.test(joined);
-  const normalizeCopyright = (text: string) => text.replace(/\s+/g, " ").trim();
   const requiredFound =
     config.requiredCopyright === null ||
-    normalizeCopyright(joined).includes(normalizeCopyright(config.requiredCopyright));
+    canonicalJoined.includes(canonicalCopyright(config.requiredCopyright));
   const ok = config.requiredCopyright === null ? standardValid : requiredFound;
   if (ok) return result("copyright", "PASS", []);
   return result("copyright", "FAIL", [
