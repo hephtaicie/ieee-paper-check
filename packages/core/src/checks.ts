@@ -47,7 +47,7 @@ function canonicalCopyright(text: string): string {
     .replace(/©\s+(?=\d{4})/g, "©")
     .trim();
 }
-const IEEE_RE = /\bIEEE\b/;
+const IEEE_RE = /(?:\bIEEE\b|\d{4}IEEE\b)/i;
 const PLACEHOLDER_RE = /X{2,3}[- ]X[- ]X{4}[- ]X{4}[- ]X\/XX\/\$XX\.00/;
 
 export function checkCopyright(data: PaperData, config: Config): CheckResult {
