@@ -35,6 +35,7 @@ function startsWithUpper(w: string): boolean {
 
 const ISBN_RE = /9\d{2}[- ]\d{1,6}[- ]\d{4}[- ]\d{4}[- ]\d/;
 const PRICE_RE = /\/\d{2}\/\$\d{2}\.\d{2}/;
+const PRICE_MISSING_DOLLAR_RE = /\/\d{2}\/\d{2}\.\d{2}/;
 const COPYYEAR_RE = /©\s*\d{4}/i;
 const COPYRIGHT_MARK_RE = /©|Ⓒ|ⓒ|🄒|⒞|c[\u20dd\u25cb]|\(\s*c\s*\)|\bcopyright\b/gi;
 
@@ -66,11 +67,12 @@ export function checkCopyright(data: PaperData, config: Config): CheckResult {
     ]);
   }
   const canonicalJoined = canonicalCopyright(joined);
-  const standardValid =
-    ISBN_RE.test(joined) &&
-    PRICE_RE.test(joined) &&
-    COPYYEAR_RE.test(canonicalJoined) &&
-    IEEE_RE.test(joined);
+  const hasIsbn = ISBN_RE.test(joined);
+  const hasPrice = PRICE_RE.test(joined);
+  const hasPriceWithoutDollar = PRICE_MISSING_DOLLAR_RE.test(joined);
+  const hasCopyrightYear = COPYYEAR_RE.test(canonicalJoined);
+  const hasIeee = IEEE_RE.test(joined);
+  const standardValid = hasIsbn && hasPrice && hasCopyrightYear && hasIeee;
   const requiredFound =
     config.requiredCopyright === null ||
     canonicalJoined.includes(canonicalCopyright(config.requiredCopyright));
@@ -82,8 +84,11 @@ export function checkCopyright(data: PaperData, config: Config): CheckResult {
       detail:
         config.requiredCopyright !== null && standardValid && !requiredFound
           ? `Copyright block does not match the required text: '${config.requiredCopyright}'`
-          : "No complete IEEE copyright block found in the bottom-left corner of page 1 " +
-            "(expected e.g. 978-1-6654-1234-5/25/$31.00 © 2025 IEEE)",
+          : hasIsbn && hasPriceWithoutDollar && !hasPrice && hasCopyrightYear && hasIeee
+            ? "Copyright block appears to be missing the dollar sign before the price " +
+              "(found /YY/31.00; expected /YY/$31.00). In LaTeX, escape it as \\$31.00."
+            : "No complete IEEE copyright block found in the bottom-left corner of page 1 " +
+              "(expected e.g. 978-1-6654-1234-5/25/$31.00 © 2025 IEEE)",
       rect: {
         x: 36,
         y: H * 0.85,
