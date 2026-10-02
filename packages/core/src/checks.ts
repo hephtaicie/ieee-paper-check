@@ -36,7 +36,7 @@ function startsWithUpper(w: string): boolean {
 const ISBN_RE = /9\d{2}[- ]\d{1,6}[- ]\d{4}[- ]\d{4}[- ]\d/;
 const PRICE_RE = /\/\d{2}\/\$\d{2}\.\d{2}/;
 const COPYYEAR_RE = /©\s*\d{4}/i;
-const COPYRIGHT_MARK_RE = /©|Ⓒ|ⓒ|🄒|⒞|c\u20dd|\(\s*c\s*\)|\bcopyright\b/gi;
+const COPYRIGHT_MARK_RE = /©|Ⓒ|ⓒ|🄒|⒞|c[\u20dd\u25cb]|\(\s*c\s*\)|\bcopyright\b/gi;
 
 function canonicalCopyright(text: string): string {
   return text
