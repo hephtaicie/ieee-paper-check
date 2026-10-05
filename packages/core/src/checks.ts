@@ -1,5 +1,14 @@
 // SPDX-License-Identifier: MIT
-import type { CheckId, CheckResult, Config, Evidence, PageLine, PaperData, Rect } from "./types.ts";
+import type {
+  CheckId,
+  CheckResult,
+  Config,
+  Evidence,
+  PageLine,
+  PaperData,
+  PreviewRegion,
+  Rect,
+} from "./types.ts";
 
 function lineRect(l: PageLine): Rect {
   return { x: l.x, y: l.y, w: l.w, h: l.h };
@@ -140,6 +149,98 @@ function findTitle(data: PaperData): TitleAnalysis {
  * validates). Empty when no title can be located. */
 export function paperTitle(data: PaperData): string {
   return findTitle(data).text;
+}
+
+const FIGURE_CAPTION_RE = /^(?:fig(?:ure)?\.?\s*\d+\b|figure\s+caption\b)/i;
+const ABSTRACT_START_RE = /^abstract\b/i;
+const REFERENCES_START_RE = /^references$/i;
+
+function previewRect(lines: PageLine[], page: number, pad = 10): Rect | null {
+  const selected = lines.filter((l) => l.page === page);
+  if (selected.length === 0) return null;
+  const x0 = Math.min(...selected.map((l) => l.x));
+  const y0 = Math.min(...selected.map((l) => l.y));
+  const x1 = Math.max(...selected.map((l) => l.x + l.w));
+  const y1 = Math.max(...selected.map((l) => l.y + l.h));
+  const width = selected[0]!.pageWidth;
+  const height = selected[0]!.pageHeight;
+  const x = Math.max(0, x0 - pad);
+  const y = Math.max(0, y0 - pad);
+  return {
+    x,
+    y,
+    w: Math.min(width, x1 + pad) - x,
+    h: Math.min(height, y1 + pad) - y,
+  };
+}
+
+/** Locate visual samples of the five regions chairs most often need to
+ * inspect. All rects use the extractor's top-origin page coordinates. */
+export function findPreviewRegions(data: PaperData): PreviewRegion[] {
+  const regions: PreviewRegion[] = [];
+  const add = (
+    id: PreviewRegion["id"],
+    label: string,
+    lines: PageLine[],
+    page: number,
+    pad = 10,
+  ) => {
+    const rect = previewRect(lines, page, pad);
+    if (rect) regions.push({ id, label, page, rect });
+  };
+
+  const title = findTitle(data);
+  const titleLines = data.lines.filter(
+    (l) =>
+      l.page === 1 &&
+      title.rect &&
+      l.x >= title.rect.x - 2 &&
+      l.x <= title.rect.x + title.rect.w + 2 &&
+      l.y >= title.rect.y - 2 &&
+      l.y <= title.rect.y + title.rect.h + 2,
+  );
+  add("title", "Title", titleLines, 1, 14);
+
+  const H = data.pageHeight;
+  const copyrightLines = data.lines.filter(
+    (l) => l.page === 1 && l.y > H * 0.85 && l.x < data.pageWidth * 0.5,
+  );
+  add("copyright", "Copyright notice", copyrightLines, 1, 12);
+
+  const abstractStart = data.lines.find(
+    (l) => l.page === 1 && ABSTRACT_START_RE.test(l.text.trim()),
+  );
+  if (abstractStart) {
+    const abstractLines = data.lines.filter(
+      (l) => l.page === 1 && l.y >= abstractStart.y - 2 && l.y <= abstractStart.y + 150,
+    );
+    add("abstract", "Abstract", abstractLines, 1, 12);
+  }
+
+  const caption = data.lines.find((l) => FIGURE_CAPTION_RE.test(l.text.trim()));
+  if (caption) {
+    const captionLines = data.lines.filter(
+      (l) =>
+        l.page === caption.page &&
+        l.y >= caption.y - 18 &&
+        l.y <= caption.y + 36 &&
+        Math.abs(l.x - caption.x) < 80,
+    );
+    add("first_figure_caption", "First figure caption", captionLines, caption.page, 18);
+  }
+
+  const refs = data.lines.find((l) => REFERENCES_START_RE.test(l.text.trim()));
+  if (refs) {
+    const referenceLines = data.lines.filter(
+      (l) =>
+        l.page === refs.page &&
+        Math.abs(l.x - refs.x) < data.pageWidth * 0.55 &&
+        l.y >= refs.y - 8 &&
+        l.y <= refs.y + 155,
+    );
+    add("references", "References", referenceLines, refs.page, 14);
+  }
+  return regions;
 }
 
 function casingProblems(words: string[], config: Config): Evidence[] {

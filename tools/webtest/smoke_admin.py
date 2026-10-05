@@ -48,12 +48,18 @@ def main() -> int:
         def badges() -> list[str]:
             return [c.locator(".badge").inner_text() for c in page.locator(".card").all()]
 
-        # Paper id 42 in the file name so the CSV matches.
+        # Paper id in the file name so the CSV matches.
         bad = Path(tempfile.mkdtemp()) / "pap104s3-file2.pdf"
         bad.write_bytes(PDF.read_bytes())
         drop(bad)
+        page.locator(".preview-button").first.click()
+        page.wait_for_timeout(800)
+        preview_available = page.locator(".preview-dialog").get_attribute("open") is not None
+        print("admin visual preview opens:", preview_available)
+        page.locator(".preview-head").get_by_role("button", name="Close").click()
+        ok = ok and preview_available
         print("default badges:", badges())
-        ok = badges() == ["✗ INVALID", "✓ VALID"]
+        ok = ok and badges() == ["✗ INVALID", "✓ VALID"]
 
         # Limit 20 -> the 14-page paper becomes valid.
         page.fill("#cfg-limit", "20")

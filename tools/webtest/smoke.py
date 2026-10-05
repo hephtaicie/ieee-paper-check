@@ -48,9 +48,24 @@ def main() -> int:
             name = c.locator(".fname").inner_text()
             badge = c.locator(".badge").inner_text()
             fails = [l.inner_text() for l in c.locator(".check.fail .label").all()]
-            print(f"  {name}: {badge} fails={fails}")
+            preview_button = c.locator(".preview-button")
+            print(f"  {name}: {badge} fails={fails} previews={preview_button.is_enabled()}")
             exp_badge, exp_fails = EXPECT[name]
-            ok = ok and badge == exp_badge and fails == exp_fails
+            ok = ok and badge == exp_badge and fails == exp_fails and preview_button.is_enabled()
+
+        page.locator(".card").first.locator(".preview-button").click()
+        preview = page.locator(".preview-dialog")
+        page.wait_for_timeout(1000)
+        preview_label = page.locator(".preview-title").inner_text()
+        preview_count = page.locator(".preview-head").locator(".muted").inner_text()
+        preview_w = page.locator(".preview-body canvas").evaluate("el => el.width")
+        print("preview opened:", preview_label, preview_count, "canvas width:", preview_w)
+        ok = ok and preview.get_attribute("open") is not None and preview_w > 0
+        page.locator(".preview-head").get_by_role("button", name="Next").click()
+        page.wait_for_timeout(300)
+        page.locator(".preview-head").get_by_role("button", name="Close").click()
+        page.wait_for_timeout(100)
+        ok = ok and preview.get_attribute("open") is None
         print("summary:", page.locator("#summary").inner_text())
 
         # Viewer: click the title-casing evidence row, expect the page-1

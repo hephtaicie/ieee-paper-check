@@ -11,6 +11,7 @@ import {
   checkStyle,
   checkTitle,
   checkUndefinedRefs,
+  findPreviewRegions,
   hasArtifactAppendix,
   paperTitle,
 } from "./checks.ts";
@@ -52,6 +53,7 @@ export async function validate(
   return {
     file,
     title: paperTitle(data),
+    previews: findPreviewRegions(data),
     artifactAppendixPresent: hasArtifactAppendix(data),
     pageCount: data.pageCount,
     results,

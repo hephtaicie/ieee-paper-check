@@ -65,10 +65,19 @@ export interface PaperData {
   fonts: FontInfo[];
 }
 
+export interface PreviewRegion {
+  id: "title" | "copyright" | "abstract" | "first_figure_caption" | "references";
+  label: string;
+  page: number;
+  rect: Rect;
+}
+
 export interface PaperReport {
   file: string;
   /** Title extracted from page 1 (best effort, may be empty). */
   title: string;
+  /** Best-effort page crops used by the web preview carousel. */
+  previews: PreviewRegion[];
   /** Whether an Artifact Description/Evaluation section was found, even if
    * allowed for this round. */
   artifactAppendixPresent: boolean;

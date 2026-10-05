@@ -3,6 +3,7 @@ import type { Config, PaperReport, Rect } from "@ieee-check/core";
 import { CHECK_LABELS, CHECK_ORDER, renderCsv, validate } from "@ieee-check/core";
 import * as pdfjs from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { PdfPreviewCarousel } from "./preview.ts";
 import { PdfViewer } from "./viewer.ts";
 
 export interface AppElements {
@@ -57,6 +58,7 @@ export function mountApp(
   // Configure the pdf.js worker before any document is opened.
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
+  const previewCarousel = new PdfPreviewCarousel(pdfjs, (file) => pdfBytes.get(file));
   const viewer = new PdfViewer(
     pdfjs,
     {
@@ -116,6 +118,15 @@ export function mountApp(
     head.className = "card-head";
     const badge = r.valid ? "✓ VALID" : "✗ INVALID";
     head.innerHTML = `<span class="badge">${badge}</span><span class="fname">${esc(r.file)}</span><span class="pages">${r.pageCount} pages</span>`;
+    const previewButton = document.createElement("button");
+    previewButton.type = "button";
+    previewButton.className = "btn ghost preview-button";
+    previewButton.setAttribute("aria-label", `Preview important areas of ${r.file}`);
+    previewButton.title = "Preview title, copyright, abstract, figure caption and references";
+    previewButton.textContent = "⌕ Preview";
+    previewButton.disabled = r.previews.length === 0;
+    previewButton.addEventListener("click", () => previewCarousel.open(r.file, r.previews));
+    head.append(previewButton);
     card.append(head);
 
     const grid = document.createElement("div");

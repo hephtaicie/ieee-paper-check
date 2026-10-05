@@ -8,6 +8,7 @@ interface TextItem {
   height: number;
   transform: number[];
   fontName: string;
+  hasEOL?: boolean;
 }
 
 /** Glyph of a showText op (pdf.js pre-resolves the font encoding). */
