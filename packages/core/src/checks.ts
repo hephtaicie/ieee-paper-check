@@ -201,26 +201,19 @@ export function findPreviewRegions(data: PaperData): PreviewRegion[] {
   add("title", "Title", titleLines, 1, 14);
 
   const H = data.pageHeight;
-  const copyrightLines = data.lines.filter(
-    (l) => l.page === 1 && l.y > H * 0.84 && l.x < data.pageWidth * 0.56,
-  );
-  // Always show the expected notice area, even when the notice is absent or
-  // placed just outside the extractor's text-detection bounds.
-  if (copyrightLines.length > 0) {
-    add("copyright", "Copyright notice", copyrightLines, 1, 36);
-  } else {
-    regions.push({
-      id: "copyright",
-      label: "Copyright notice area",
-      page: 1,
-      rect: {
-        x: 24,
-        y: H * 0.83,
-        w: data.pageWidth * 0.56,
-        h: H * 0.17 - 24,
-      },
-    });
-  }
+  // Show the whole footer band across the page, not just the expected
+  // bottom-left zone, so a displaced notice remains visually inspectable.
+  regions.push({
+    id: "copyright",
+    label: "Copyright and page footer",
+    page: 1,
+    rect: {
+      x: 0,
+      y: H * 0.78,
+      w: data.pageWidth,
+      h: H * 0.22,
+    },
+  });
 
   const abstractStart = data.lines.find(
     (l) => l.page === 1 && ABSTRACT_START_RE.test(l.text.trim()),

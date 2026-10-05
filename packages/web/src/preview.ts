@@ -45,6 +45,15 @@ export class PdfPreviewCarousel {
     this.previous.addEventListener("click", () => this.navigate(-1));
     this.next.addEventListener("click", () => this.navigate(1));
     this.closeButton.addEventListener("click", () => this.close());
+    this.dialog.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        this.navigate(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        this.navigate(1);
+      }
+    });
     this.dialog.addEventListener("click", (event) => {
       if (event.target === this.dialog) this.close();
     });

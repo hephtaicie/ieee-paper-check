@@ -63,6 +63,11 @@ def main() -> int:
         ok = ok and preview.get_attribute("open") is not None and preview_w > 0
         page.locator(".preview-head").get_by_role("button", name="Next").click()
         page.wait_for_timeout(300)
+        page.keyboard.press("ArrowRight")
+        page.wait_for_timeout(300)
+        arrow_count = page.locator(".preview-head").locator(".muted").inner_text()
+        print("after ArrowRight:", arrow_count)
+        ok = ok and arrow_count == "3 / 4"
         page.locator(".preview-head").get_by_role("button", name="Close").click()
         page.wait_for_timeout(100)
         ok = ok and preview.get_attribute("open") is None
