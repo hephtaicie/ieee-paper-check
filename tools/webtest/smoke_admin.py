@@ -22,11 +22,12 @@ GOOD = ROOT / "corpus/pdfs/good.pdf"
 
 def main() -> int:
     csv = Path(tempfile.mkdtemp()) / "papers.csv"
-    # Real export shape: quoted "Emails" cell with a comma-separated list.
+    # Real export shape: submitter Email precedes the full author list in
+    # quoted Contact Emails; only Contact Emails should become recipients.
     csv.write_text(
-        'Submission,Title,Contact Emails\n'
-        '"pap104s3","Some title","a104@ex.org,b104@ex.org"\n'
-        '"pap200x1","Other title","c200@ex.org"\n'
+        'Submission,Title,Email,Contacts,Contact Emails\n'
+        '"pap104s3","Some title","submitter@ex.org","Submitter","a104@ex.org,b104@ex.org"\n'
+        '"pap200x1","Other title","other.submitter@ex.org","Contact","c200@ex.org"\n'
     )
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)

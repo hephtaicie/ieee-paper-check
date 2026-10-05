@@ -214,12 +214,14 @@ function parseCsv(text: string): void {
   authors.clear();
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length === 0) return;
-  // Column layout from the header: "Submission" and anything with
-  // "email" in it (the export says "Contact Emails"); fall back to the
-  // first two columns when the header is absent.
-  const head = csvCells(lines[0]!).map((c) => c.toLowerCase());
-  let idCol = head.findIndex((c) => c.includes("submission"));
-  let mailCol = head.findIndex((c) => c.includes("email"));
+  // Prefer the complete author list in "Contact Emails"; the export's
+  // plain "Email" column is only the submitter/contact address.
+  const head = csvCells(lines[0]!).map((c) => c.trim().toLowerCase());
+  let idCol = head.findIndex((c) => c === "submission");
+  let mailCol = head.findIndex((c) => c === "contact emails");
+  if (mailCol === -1) mailCol = head.findIndex((c) => c === "emails");
+  if (mailCol === -1) mailCol = head.findIndex((c) => c === "email");
+  if (mailCol === -1) mailCol = head.findIndex((c) => c.includes("email"));
   if (idCol === -1 || mailCol === -1) {
     idCol = 0;
     mailCol = 1;
