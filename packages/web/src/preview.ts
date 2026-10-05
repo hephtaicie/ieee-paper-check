@@ -25,6 +25,7 @@ export class PdfPreviewCarousel {
   ) {
     this.dialog.className = "preview-dialog";
     this.dialog.setAttribute("aria-label", "Paper visual previews");
+    this.dialog.tabIndex = -1;
     const header = document.createElement("div");
     header.className = "preview-head";
     this.heading.className = "preview-title";
@@ -66,6 +67,7 @@ export class PdfPreviewCarousel {
     if (regions.length === 0) return;
     this.current = { file, regions, index: 0 };
     if (!this.dialog.open) this.dialog.showModal();
+    this.dialog.focus();
     void this.render();
   }
 

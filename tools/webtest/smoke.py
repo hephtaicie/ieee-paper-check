@@ -58,16 +58,17 @@ def main() -> int:
         page.wait_for_timeout(1000)
         preview_label = page.locator(".preview-title").inner_text()
         preview_count = page.locator(".preview-head").locator(".muted").inner_text()
+        preview_focused = page.evaluate("document.activeElement === document.querySelector('.preview-dialog')")
         preview_w = page.locator(".preview-body canvas").evaluate("el => el.width")
         print("preview opened:", preview_label, preview_count, "canvas width:", preview_w)
-        ok = ok and preview.get_attribute("open") is not None and preview_w > 0
-        page.locator(".preview-head").get_by_role("button", name="Next").click()
-        page.wait_for_timeout(300)
+        print("preview focused on open:", preview_focused)
+        ok = ok and preview.get_attribute("open") is not None and preview_w > 0 and preview_focused
+        # No click inside the popup: focus from opening should be enough.
         page.keyboard.press("ArrowRight")
         page.wait_for_timeout(300)
         arrow_count = page.locator(".preview-head").locator(".muted").inner_text()
         print("after ArrowRight:", arrow_count)
-        ok = ok and arrow_count == "3 / 4"
+        ok = ok and arrow_count == "2 / 4"
         page.locator(".preview-head").get_by_role("button", name="Close").click()
         page.wait_for_timeout(100)
         ok = ok and preview.get_attribute("open") is None
