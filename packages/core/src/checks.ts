@@ -156,21 +156,20 @@ const ABSTRACT_START_RE = /^abstract\b/i;
 const REFERENCES_START_RE = /^references$/i;
 
 function previewRect(lines: PageLine[], page: number, pad = 10): Rect | null {
+  const sample = lines.find((l) => l.page === page) ?? lines[0];
+  if (!sample) return null;
   const selected = lines.filter((l) => l.page === page);
-  if (selected.length === 0) return null;
-  const x0 = Math.min(...selected.map((l) => l.x));
-  const y0 = Math.min(...selected.map((l) => l.y));
-  const x1 = Math.max(...selected.map((l) => l.x + l.w));
-  const y1 = Math.max(...selected.map((l) => l.y + l.h));
-  const width = selected[0]!.pageWidth;
-  const height = selected[0]!.pageHeight;
+  const x0 = selected.length > 0 ? Math.min(...selected.map((l) => l.x)) : 0;
+  const y0 = selected.length > 0 ? Math.min(...selected.map((l) => l.y)) : 0;
+  const x1 = selected.length > 0 ? Math.max(...selected.map((l) => l.x + l.w)) : sample.pageWidth;
+  const y1 = selected.length > 0 ? Math.max(...selected.map((l) => l.y + l.h)) : sample.pageHeight;
   const x = Math.max(0, x0 - pad);
   const y = Math.max(0, y0 - pad);
   return {
     x,
     y,
-    w: Math.min(width, x1 + pad) - x,
-    h: Math.min(height, y1 + pad) - y,
+    w: Math.min(sample.pageWidth, x1 + pad) - x,
+    h: Math.min(sample.pageHeight, y1 + pad) - y,
   };
 }
 
@@ -203,9 +202,25 @@ export function findPreviewRegions(data: PaperData): PreviewRegion[] {
 
   const H = data.pageHeight;
   const copyrightLines = data.lines.filter(
-    (l) => l.page === 1 && l.y > H * 0.85 && l.x < data.pageWidth * 0.5,
+    (l) => l.page === 1 && l.y > H * 0.84 && l.x < data.pageWidth * 0.56,
   );
-  add("copyright", "Copyright notice", copyrightLines, 1, 12);
+  // Always show the expected notice area, even when the notice is absent or
+  // placed just outside the extractor's text-detection bounds.
+  if (copyrightLines.length > 0) {
+    add("copyright", "Copyright notice", copyrightLines, 1, 36);
+  } else {
+    regions.push({
+      id: "copyright",
+      label: "Copyright notice area",
+      page: 1,
+      rect: {
+        x: 24,
+        y: H * 0.83,
+        w: data.pageWidth * 0.56,
+        h: H * 0.17 - 24,
+      },
+    });
+  }
 
   const abstractStart = data.lines.find(
     (l) => l.page === 1 && ABSTRACT_START_RE.test(l.text.trim()),
@@ -222,11 +237,11 @@ export function findPreviewRegions(data: PaperData): PreviewRegion[] {
     const captionLines = data.lines.filter(
       (l) =>
         l.page === caption.page &&
-        l.y >= caption.y - 18 &&
-        l.y <= caption.y + 36 &&
-        Math.abs(l.x - caption.x) < 80,
+        l.y >= caption.y - 48 &&
+        l.y <= caption.y + 60 &&
+        Math.abs(l.x - caption.x) < data.pageWidth * 0.65,
     );
-    add("first_figure_caption", "First figure caption", captionLines, caption.page, 18);
+    add("first_figure_caption", "First figure caption", captionLines, caption.page, 30);
   }
 
   const refs = data.lines.find((l) => REFERENCES_START_RE.test(l.text.trim()));
@@ -234,11 +249,11 @@ export function findPreviewRegions(data: PaperData): PreviewRegion[] {
     const referenceLines = data.lines.filter(
       (l) =>
         l.page === refs.page &&
-        Math.abs(l.x - refs.x) < data.pageWidth * 0.55 &&
-        l.y >= refs.y - 8 &&
-        l.y <= refs.y + 155,
+        Math.abs(l.x - refs.x) < data.pageWidth * 0.65 &&
+        l.y >= refs.y - 12 &&
+        l.y <= refs.y + 250,
     );
-    add("references", "References", referenceLines, refs.page, 14);
+    add("references", "References", referenceLines, refs.page, 28);
   }
   return regions;
 }
