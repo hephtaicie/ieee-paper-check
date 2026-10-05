@@ -305,6 +305,21 @@ footer ul {
   flex: 0 0 auto;
 }
 
+/* Title dictionary actions inside an admin report card. */
+.title-dictionary-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-top: 1px dashed var(--line);
+  font-size: 0.86rem;
+}
+.title-dictionary-actions .btn {
+  padding: 0.25rem 0.55rem;
+  font-size: 0.82rem;
+}
+
 /* mailto button inside a report card (admin) */
 .card-mailto {
   display: flex;

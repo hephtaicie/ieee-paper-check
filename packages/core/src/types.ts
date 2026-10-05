@@ -93,6 +93,8 @@ export interface Config {
   allowArtifactAppendix: boolean;
   smallWords: string[];
   acronyms: string[];
+  /** Words/components exempt from title-case checks (case-insensitive). */
+  titleAllowedWords: string[];
   /** Appendices are forbidden in the paper body (submitted separately). */
   forbidAppendices: boolean;
   /** Checks not to run at all: no report row, never affects validity.
@@ -137,4 +139,5 @@ export const DEFAULT_CONFIG: Config = {
   // All-caps words of <= 5 letters are accepted automatically, so this
   // list only needs acronyms a conference wants to allow above that.
   acronyms: [],
+  titleAllowedWords: [],
 };

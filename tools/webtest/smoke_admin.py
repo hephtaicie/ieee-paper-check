@@ -142,8 +142,28 @@ def main() -> int:
         # good.pdf is valid: no mailto footer on its card.
         ok = ok and page.locator(".card.valid .card-mailto").count() == 0
 
+        # A flag caused by lowercase title words offers browser-local
+        # dictionary actions; accepting the reported words rechecks the title.
+        page.locator("#clear-btn").click()
+        title_bad = ROOT / "corpus/pdfs/bad_title_case.pdf"
+        drop(title_bad)
+        title_card = page.locator(".card").first
+        dictionary_buttons = title_card.locator(".title-dictionary-actions button")
+        dictionary_words = [b.inner_text().lstrip("+ ") for b in dictionary_buttons.all()]
+        print("title dictionary suggestions:", dictionary_words)
+        ok = ok and len(dictionary_words) > 0
+        while title_card.locator(".title-dictionary-actions button").count():
+            title_card.locator(".title-dictionary-actions button").first.click()
+            page.wait_for_timeout(500)
+        ok = ok and title_card.locator(".check.fail", has_text="Title capitalization").count() == 0
+
         # Allow AD/AE: it no longer fails, but the card shows an informational
         # notice; disabling appendix checks keeps this test focused on AD/AE.
+        page.reload()
+        page.wait_for_load_state("networkidle")
+        persisted_words = page.evaluate("JSON.parse(localStorage.getItem('ieee-check-admin-title-allowed-words-v1') || '[]')")
+        print("dictionary persisted:", len(persisted_words) > 0)
+        ok = ok and len(persisted_words) > 0
         page.locator("#cfg-checks .cfg-row", has_text="No AD/AE appendix").locator("input").uncheck()
         page.locator("#cfg-checks .cfg-row", has_text="No appendix in paper").locator("input").uncheck()
         page.locator("#cfg-checks .cfg-row", has_text="Page limit").locator("input").uncheck()

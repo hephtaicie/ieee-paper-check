@@ -260,6 +260,8 @@ function casingProblems(words: string[], config: Config): Evidence[] {
   for (let i = 0; i < words.length; i++) {
     const word = words[i]!.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
     if (!/[A-Za-z]/.test(word) || /\d/.test(word)) continue;
+    if (config.titleAllowedWords.some((allowed) => allowed.toLowerCase() === word.toLowerCase()))
+      continue;
     const isSmall = config.smallWords.includes(word.toLowerCase());
     // Edge words (title start/end, and the first word of a colon
     // subtitle, e.g. "…: A Feasibility Study") keep their capital.
@@ -284,6 +286,11 @@ function casingProblems(words: string[], config: Config): Evidence[] {
     if (parts.length > 1) {
       parts.forEach((part, j) => {
         if (!/[A-Za-z]/.test(part)) return;
+        if (
+          config.titleAllowedWords.some((allowed) => allowed.toLowerCase() === part.toLowerCase())
+        ) {
+          return;
+        }
         const partIsSmall =
           config.smallWords.includes(part.toLowerCase()) && j !== 0 && j !== parts.length - 1;
         if (partIsSmall) {

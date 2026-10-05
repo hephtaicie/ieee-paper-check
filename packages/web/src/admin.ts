@@ -18,6 +18,7 @@ function byId<T extends HTMLElement>(id: string): T {
 
 const CONFIG_KEY = "ieee-check-admin-config-v1";
 const CONFIG_BASE_KEY = "ieee-check-admin-config-base-v1";
+const TITLE_WORDS_KEY = "ieee-check-admin-title-allowed-words-v1";
 
 function loadAdminConfig(): Config {
   const base = sharedSiteConfig();
@@ -28,9 +29,19 @@ function loadAdminConfig(): Config {
     if (raw === null || savedBase !== baseFingerprint) {
       localStorage.setItem(CONFIG_BASE_KEY, baseFingerprint);
       localStorage.setItem(CONFIG_KEY, JSON.stringify(base));
-      return base;
+      const localTitleWords = JSON.parse(localStorage.getItem(TITLE_WORDS_KEY) ?? "[]") as string[];
+      return {
+        ...base,
+        titleAllowedWords: [...new Set([...(base.titleAllowedWords ?? []), ...localTitleWords])],
+      };
     }
-    return { ...base, ...(JSON.parse(raw) as Partial<Config>) };
+    const saved = JSON.parse(raw) as Partial<Config>;
+    const localTitleWords = JSON.parse(localStorage.getItem(TITLE_WORDS_KEY) ?? "[]") as string[];
+    return {
+      ...base,
+      ...saved,
+      titleAllowedWords: [...new Set([...(base.titleAllowedWords ?? []), ...localTitleWords])],
+    };
   } catch {
     return base;
   }
@@ -270,7 +281,55 @@ function failuresFor(r: PaperReport): string {
     .join("\n");
 }
 
+function titleWordsToLearn(detail: string): string[] {
+  const patterns: Array<{ pattern: RegExp; group: number }> = [
+    { pattern: /'([^']+)' is a small word and must be lowercase/g, group: 1 },
+    { pattern: /'([^']+)' in '[^']+' must start with a capital letter/g, group: 1 },
+    { pattern: /In '[^']+', '([^']+)' must be lowercase/g, group: 1 },
+    { pattern: /'([^']+)' must start with a capital letter/g, group: 1 },
+  ];
+  const found: string[] = [];
+  for (const { pattern, group } of patterns) {
+    for (const match of detail.matchAll(pattern)) {
+      const token = match[group];
+      if (token) found.push(token);
+    }
+  }
+  return [...new Set(found)];
+}
+
+function addTitleWordButtons(r: PaperReport, card: HTMLElement): void {
+  const titleCheck = r.results.find((c) => c.id === "title" && c.status === "FAIL");
+  if (!titleCheck) return;
+  const words = [...new Set(titleCheck.evidence.flatMap((e) => titleWordsToLearn(e.detail)))];
+  if (words.length === 0) return;
+  const row = document.createElement("div");
+  row.className = "title-dictionary-actions";
+  const caption = document.createElement("span");
+  caption.className = "muted";
+  caption.textContent = "Unexpected casing? Add a word to this browser’s title dictionary:";
+  row.append(caption);
+  for (const word of words) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn ghost";
+    button.textContent = `+ ${word}`;
+    button.title = `Allow “${word}” in future paper titles in this browser`;
+    button.addEventListener("click", () => {
+      const entries = new Set(config.titleAllowedWords.map((w) => w.toLowerCase()));
+      entries.add(word.toLowerCase());
+      config.titleAllowedWords = [...entries];
+      localStorage.setItem(TITLE_WORDS_KEY, JSON.stringify(config.titleAllowedWords));
+      saveAdminConfig(config);
+      void app.revalidate();
+    });
+    row.append(button);
+  }
+  card.append(row);
+}
+
 function augmentCard(r: PaperReport, card: HTMLElement): void {
+  addTitleWordButtons(r, card);
   if (r.artifactAppendixPresent && config.allowArtifactAppendix) {
     const notice = document.createElement("div");
     notice.className = "info-notice";
