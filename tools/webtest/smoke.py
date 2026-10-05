@@ -93,8 +93,18 @@ def main() -> int:
         print("viewer closed:", dialog.get_attribute("open") is None)
         ok = ok and dialog.get_attribute("open") is None
 
-        # Passing rows must be inert: no inline evidence, no click
-        # affordance, nothing to inspect on a green card.
+        # Any paper filename opens the full-document viewer, even on a
+        # passing paper; close it, then verify passing check rows stay inert.
+        page.locator(".card.valid .file-preview").first.click()
+        page.wait_for_timeout(600)
+        full_preview_open = page.locator("#viewer").get_attribute("open") is not None
+        print("valid-paper filename opens viewer:", full_preview_open)
+        ok = ok and full_preview_open
+        page.locator("#v-close").click()
+        page.wait_for_timeout(100)
+        ok = ok and page.locator("#viewer").get_attribute("open") is None
+
+        # Passing check rows remain inert: no evidence or click affordance.
         pass_title = page.locator(".card.valid .check", has_text="Title capitalization").first
         quiet = pass_title.locator(".evidence").count() == 0
         viewable = pass_title.get_attribute("class") and "viewable" in (pass_title.get_attribute("class") or "")

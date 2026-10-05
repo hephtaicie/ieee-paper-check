@@ -140,6 +140,21 @@ header h1 {
   flex: 1;
   word-break: break-all;
 }
+.file-preview {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.file-preview:hover,
+.file-preview:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
 .pages {
   color: var(--muted);
   font-size: 0.85rem;

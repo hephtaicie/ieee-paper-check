@@ -117,7 +117,9 @@ export function mountApp(
     const head = document.createElement("div");
     head.className = "card-head";
     const badge = r.valid ? "✓ VALID" : "✗ INVALID";
-    head.innerHTML = `<span class="badge">${badge}</span><span class="fname">${esc(r.file)}</span><span class="pages">${r.pageCount} pages</span>`;
+    head.innerHTML = `<span class="badge">${badge}</span><button type="button" class="fname file-preview" aria-label="Open full PDF preview for ${esc(r.file)}" title="Open full PDF preview">${esc(r.file)}</button><span class="pages">${r.pageCount} pages</span>`;
+    const filePreview = head.querySelector<HTMLButtonElement>(".file-preview")!;
+    filePreview.addEventListener("click", () => viewer.open(r.file, 1));
     const previewButton = document.createElement("button");
     previewButton.type = "button";
     previewButton.className = "btn ghost preview-button";
