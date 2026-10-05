@@ -93,7 +93,14 @@ def main() -> int:
         ok = ok and hl_top < canvas_h * 0.25
         page_label = page.locator("#v-page").inner_text()
         print(f"canvas width: {canvas_w}, highlight: {hl_visible}, page label: {page_label}")
-        ok = ok and dialog.get_attribute("open") is not None and canvas_w > 500
+        viewer_focused = page.evaluate("document.activeElement === document.querySelector('#viewer')")
+        ok = ok and dialog.get_attribute("open") is not None and canvas_w > 500 and viewer_focused
+        # Navigate the full-document viewer without clicking its buttons.
+        page.keyboard.press("ArrowRight")
+        page.wait_for_timeout(500)
+        next_page = page.locator("#v-page").inner_text()
+        print("viewer after ArrowRight:", next_page)
+        ok = ok and next_page.startswith("2 /")
         page.locator("#v-close").click()
         page.wait_for_timeout(200)
         print("viewer closed:", dialog.get_attribute("open") is None)

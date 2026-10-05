@@ -24,9 +24,19 @@ export class PdfViewer {
     private readonly host: ViewerHost,
     private readonly getBytes: (file: string) => Uint8Array | undefined,
   ) {
+    host.dialog.tabIndex = -1;
     host.close.addEventListener("click", () => this.close());
     host.prev.addEventListener("click", () => this.navigate(-1));
     host.next.addEventListener("click", () => this.navigate(1));
+    host.dialog.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        this.navigate(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        this.navigate(1);
+      }
+    });
   }
 
   open(file: string, page: number, rect?: Rect): void {
@@ -64,6 +74,7 @@ export class PdfViewer {
     if (c === null) return;
     const { dialog, title, pageLabel, canvas, hl } = this.host;
     if (!dialog.open) dialog.showModal();
+    dialog.focus();
     try {
       const d = await this.doc(c.file);
       const page = Math.min(Math.max(1, c.page), d.numPages);
