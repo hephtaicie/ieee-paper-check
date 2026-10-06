@@ -56,6 +56,26 @@ def main() -> int:
         bad = Path(tempfile.mkdtemp()) / "pap104s3-file2.pdf"
         bad.write_bytes(PDF.read_bytes())
         drop(bad)
+        status_select = page.locator(".card").first.locator(".review-status-select")
+        print("default review status:", status_select.input_value())
+        ok = ok and status_select.input_value() == "red"
+        status_select.select_option("orange")
+        status_select = page.locator(".card").first.locator(".review-status-select")
+        print("updated review status:", status_select.input_value())
+        ok = ok and status_select.input_value() == "orange"
+        page.locator("#authors-panel summary").click()
+        page.once("dialog", lambda dialog: dialog.dismiss())
+        page.locator("#reset-review-statuses").click()
+        status_select = page.locator(".card").first.locator(".review-status-select")
+        ok = ok and status_select.input_value() == "orange"
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.locator("#reset-review-statuses").click()
+        status_select = page.locator(".card").first.locator(".review-status-select")
+        print("confirmed reset status:", status_select.input_value())
+        ok = ok and status_select.input_value() == "red"
+        status_select.select_option("orange")
+        status_select = page.locator(".card").first.locator(".review-status-select")
+        ok = ok and status_select.input_value() == "orange"
         page.locator(".preview-button").first.click()
         page.wait_for_timeout(800)
         preview_available = page.locator(".preview-dialog").get_attribute("open") is not None
@@ -68,7 +88,7 @@ def main() -> int:
         # Limit 20 -> the 14-page paper becomes valid.
         page.fill("#cfg-limit", "20")
         page.locator("#cfg-limit").dispatch_event("change")
-        page.wait_for_timeout(800)
+        page.wait_for_timeout(2200)
         print("limit-20 badges:", badges())
         ok = ok and badges() == ["✓ VALID", "✓ VALID"]
 
@@ -90,7 +110,7 @@ def main() -> int:
         page.wait_for_timeout(700)
         page.fill("#cfg-min-limit", "7")
         page.locator("#cfg-min-limit").dispatch_event("change")
-        page.wait_for_timeout(800)
+        page.wait_for_timeout(2200)
         print("min-7 badges:", badges())
         ok = ok and badges() == ["✓ VALID", "✗ INVALID"]
         page.fill("#cfg-min-limit", "4")
@@ -109,6 +129,13 @@ def main() -> int:
         limit = page.locator("#cfg-limit").input_value()
         print("limits persist after reload:", min_limit, limit)
         ok = ok and min_limit == "4" and limit == "12"
+        page.locator("#file-input").set_input_files(str(bad))
+        page.wait_for_selector(".card", timeout=60000)
+        page.wait_for_timeout(1000)
+        persisted_status = page.locator(".card").first.locator(".review-status-select").input_value()
+        print("review status persisted:", persisted_status)
+        ok = ok and persisted_status == "orange"
+        page.locator("#clear-btn").click()
 
         # Re-enable page_limit, drop the papers again, load the CSV and
         # expect a mailto button ON the invalid paper's card (not in a

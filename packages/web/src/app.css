@@ -321,6 +321,33 @@ footer ul {
 }
 
 /* mailto button inside a report card (admin) */
+.review-status-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+.review-status-select {
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--bad);
+  border-radius: 6px;
+  padding: 0.25rem 0.45rem;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+}
+.review-status-select.green {
+  border-left-color: var(--ok);
+}
+.review-status-select.orange {
+  border-left-color: #db8217;
+}
+.review-status-select.red {
+  border-left-color: var(--bad);
+}
 .card-mailto {
   display: flex;
   align-items: center;

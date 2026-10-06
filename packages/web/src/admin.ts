@@ -19,6 +19,7 @@ function byId<T extends HTMLElement>(id: string): T {
 const CONFIG_KEY = "ieee-check-admin-config-v1";
 const CONFIG_BASE_KEY = "ieee-check-admin-config-base-v1";
 const TITLE_WORDS_KEY = "ieee-check-admin-title-allowed-words-v1";
+const REVIEW_STATUS_KEY = "ieee-check-admin-review-status-v1";
 
 function loadAdminConfig(): Config {
   const base = sharedSiteConfig();
@@ -53,6 +54,37 @@ function saveAdminConfig(config: Config): void {
 }
 
 const config: Config = loadAdminConfig();
+type ReviewStatus = "green" | "orange" | "red";
+const reviewStatus = new Map<string, ReviewStatus>(
+  Object.entries(JSON.parse(localStorage.getItem(REVIEW_STATUS_KEY) ?? "{}")) as [
+    string,
+    ReviewStatus,
+  ][],
+);
+
+function saveReviewStatus(): void {
+  localStorage.setItem(REVIEW_STATUS_KEY, JSON.stringify(Object.fromEntries(reviewStatus)));
+}
+
+byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () => {
+  const confirmed = window.confirm(
+    `Reset tracking statuses for all ${reviewStatus.size} saved paper(s) to red (action pending)?`,
+  );
+  if (!confirmed) return;
+  reviewStatus.clear();
+  saveReviewStatus();
+  app.rerender();
+});
+
+byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () => {
+  const confirmed = window.confirm(
+    `Reset tracking statuses for all ${reviewStatus.size} saved paper(s) to red (action pending)?`,
+  );
+  if (!confirmed) return;
+  reviewStatus.clear();
+  saveReviewStatus();
+  app.rerender();
+});
 
 // ---------------------------------------------------------------------------
 // Email template: subject + body with {{id}}, {{title}}, {{filename}} and
@@ -355,7 +387,36 @@ function appendMailButton(footer: HTMLElement, href: string, label: string): voi
   footer.append(a);
 }
 
+function addReviewStatusControl(r: PaperReport, card: HTMLElement): void {
+  const wrap = document.createElement("label");
+  wrap.className = "review-status-control";
+  wrap.append(document.createTextNode("Tracking status"));
+  const select = document.createElement("select");
+  select.className = `review-status-select ${reviewStatus.get(r.file) ?? "red"}`;
+  select.setAttribute("aria-label", `Tracking status for ${r.file}`);
+  const options: Array<[ReviewStatus, string]> = [
+    ["green", "Green — validated"],
+    ["orange", "Orange — authors emailed"],
+    ["red", "Red — action pending"],
+  ];
+  for (const [value, label] of options) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    option.selected = (reviewStatus.get(r.file) ?? "red") === value;
+    select.append(option);
+  }
+  select.addEventListener("change", () => {
+    reviewStatus.set(r.file, select.value as ReviewStatus);
+    select.className = `review-status-select ${select.value}`;
+    saveReviewStatus();
+  });
+  wrap.append(select);
+  card.append(wrap);
+}
+
 function augmentCard(r: PaperReport, card: HTMLElement): void {
+  addReviewStatusControl(r, card);
   addTitleWordButtons(r, card);
   if (r.artifactAppendixPresent && config.allowArtifactAppendix) {
     const notice = document.createElement("div");
