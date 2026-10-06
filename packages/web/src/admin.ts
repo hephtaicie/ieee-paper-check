@@ -328,6 +328,33 @@ function addTitleWordButtons(r: PaperReport, card: HTMLElement): void {
   card.append(row);
 }
 
+function mailtoHref(
+  r: PaperReport,
+  match: { id: string; emails: string[] },
+  errors: string,
+): string {
+  const vars: Record<string, string> = {
+    id: match.id,
+    title: r.title || r.file,
+    filename: r.file,
+    errors,
+    url: location.href.replace(/admin\.html.*$/, ""),
+  };
+  return (
+    `mailto:${match.emails.join(",")}` +
+    `?subject=${encodeURIComponent(fillTemplate(template.subject, vars))}` +
+    `&body=${encodeURIComponent(fillTemplate(template.body, vars))}`
+  );
+}
+
+function appendMailButton(footer: HTMLElement, href: string, label: string): void {
+  const a = document.createElement("a");
+  a.className = "btn";
+  a.href = href;
+  a.textContent = label;
+  footer.append(a);
+}
+
 function augmentCard(r: PaperReport, card: HTMLElement): void {
   addTitleWordButtons(r, card);
   if (r.artifactAppendixPresent && config.allowArtifactAppendix) {
@@ -336,30 +363,18 @@ function augmentCard(r: PaperReport, card: HTMLElement): void {
     notice.textContent = "Informational: an Artifact Description/Evaluation section was detected.";
     card.append(notice);
   }
-  if (r.valid) return;
+  const match = matchSubmission(r.file);
+  if (r.valid && match === undefined) return;
   const footer = document.createElement("div");
   footer.className = "card-mailto";
-  const match = matchSubmission(r.file);
   if (match === undefined) {
     footer.innerHTML = `<span class="muted">No matching submission id in the CSV — no email link.</span>`;
   } else {
-    const vars: Record<string, string> = {
-      id: match.id,
-      title: r.title || r.file,
-      filename: r.file,
-      errors: failuresFor(r),
-      url: location.href.replace(/admin\.html.*$/, ""),
-    };
-    const href =
-      `mailto:${match.emails.join(",")}` +
-      `?subject=${encodeURIComponent(fillTemplate(template.subject, vars))}` +
-      `&body=${encodeURIComponent(fillTemplate(template.body, vars))}`;
     footer.innerHTML = `<span class="muted">→ ${esc(match.emails.join(", "))}</span>`;
-    const a = document.createElement("a");
-    a.className = "btn";
-    a.href = href;
-    a.textContent = "✉ Email authors";
-    footer.append(a);
+    if (!r.valid) {
+      appendMailButton(footer, mailtoHref(r, match, failuresFor(r)), "✉ Email about failed checks");
+    }
+    appendMailButton(footer, mailtoHref(r, match, ""), "✉ Compose manual email");
   }
   card.append(footer);
 }

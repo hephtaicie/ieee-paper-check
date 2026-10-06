@@ -81,9 +81,11 @@
       <p class="muted">
         Each PDF file name must contain the submission id (e.g.
         <code>pap104s3-file2.pdf</code> for submission <code>pap104s3</code>).
-        Invalid papers with a match get a prefilled revision-request mailto
-        button directly on their report card. Opening it launches your own
-        mail client — nothing is sent by this page.
+        Matched papers get a manual email button on their report card. Invalid
+        papers also get a separate button listing failed checks. The manual
+        email uses the configured template with an empty <code>{{errors}}</code>.
+        Opening either button launches your own mail client — nothing is sent
+        by this page.
       </p>
     </div>
   </details>

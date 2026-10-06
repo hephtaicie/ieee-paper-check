@@ -12,6 +12,7 @@ Usage: uv run --with playwright python tools/webtest/smoke_admin.py
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import unquote
 
 from playwright.sync_api import sync_playwright
 
@@ -29,6 +30,8 @@ def main() -> int:
         '"pap104s3","Some title","submitter@ex.org","Submitter","a104@ex.org,b104@ex.org"\n'
         '"pap200x1","Other title","other.submitter@ex.org","Contact","c200@ex.org"\n'
     )
+    matched_good = Path(tempfile.mkdtemp()) / "pap200x1-good.pdf"
+    matched_good.write_bytes(GOOD.read_bytes())
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
@@ -111,19 +114,50 @@ def main() -> int:
         # expect a mailto button ON the invalid paper's card (not in a
         # separate panel), with the template variables filled in.
         page.locator("#cfg-checks .cfg-row", has_text="Page limit").locator("input").check()
-        drop(bad)
+        # The minimum-page test left the valid fixture below the max only;
+        # restore the expected range and wait for the revalidation to finish.
+        page.fill("#cfg-min-limit", "4")
+        page.locator("#cfg-min-limit").dispatch_event("change")
+        page.fill("#cfg-limit", "12")
+        page.locator("#cfg-limit").dispatch_event("change")
+        page.wait_for_timeout(1000)
+        page.locator("#file-input").set_input_files([str(bad), str(matched_good)])
+        page.wait_for_selector(".card", timeout=60000)
+        page.wait_for_timeout(1200)
+        badges_after_clear = badges()
+        print("manual-email fixture badges:", badges_after_clear)
+        ok = ok and badges_after_clear == ["✗ INVALID", "✓ VALID"]
         page.locator("#csv-file").set_input_files(str(csv))
         page.wait_for_timeout(800)
-        links = page.locator(".card-mailto a")
-        href = links.first.get_attribute("href") or ""
-        print("mailto buttons:", links.count(), "| href head:", href[:70])
+        invalid_links = page.locator(".card.invalid .card-mailto a")
+        manual_invalid = invalid_links.filter(has_text="Compose manual email")
+        failed_checks_email = invalid_links.filter(has_text="Email about failed checks")
+        manual_href = manual_invalid.get_attribute("href") or ""
+        failed_href = failed_checks_email.get_attribute("href") or ""
+        valid_links = page.locator(".card.valid .card-mailto a")
+        manual_valid = valid_links.filter(has_text="Compose manual email")
+        valid_href = manual_valid.get_attribute("href") or ""
+        print("manual/failed-check links:", manual_invalid.count(), failed_checks_email.count())
+        valid_body = unquote(valid_href.split("body=")[1]) if "body=" in valid_href else ""
+        failed_body = unquote(failed_href.split("body=")[1]) if "body=" in failed_href else ""
+        print("valid manual link:", manual_valid.count(), valid_href[:80])
+        print("manual email errors are blank:", "\n- " not in valid_body and "{{errors}}" not in valid_body)
+        print("failed body contains errors:", "\n- " in failed_body)
         ok = (
             ok
-            and links.count() == 1
-            and "pap104s3" in href
-            and "a104@ex.org" in href
-            and "b104@ex.org" in href
-            and "mailto:" in href
+            and manual_invalid.count() == 1
+            and failed_checks_email.count() == 1
+            and "pap104s3" in manual_href
+            and "a104@ex.org" in manual_href
+            and "b104@ex.org" in manual_href
+            and "mailto:" in manual_href
+            and "\n- " in unquote(failed_href.split("body=")[1])
+            and manual_valid.count() == 1
+            and "pap200x1" in valid_href
+            and "c200@ex.org" in valid_href
+            and "mailto:" in valid_href
+            and "\n- " not in valid_body
+            and "{{errors}}" not in valid_body
         )
 
         # Template variables: {{title}} from the PDF, {{errors}} bullets.
@@ -132,15 +166,11 @@ def main() -> int:
         page.locator("#template-panel summary").click()
         page.fill("#tpl-subject", "Fix {{id}} ({{title}})")
         page.wait_for_timeout(300)
-        href = links.first.get_attribute("href") or ""
-        from urllib.parse import unquote
-
+        href = failed_checks_email.get_attribute("href") or ""
         subj = href.split("subject=")[1].split("&")[0]
         print("subject:", unquote(subj)[:80])
         ok = ok and "pap104s3" in unquote(subj) and "Data-Aware" in unquote(subj)
 
-        # good.pdf is valid: no mailto footer on its card.
-        ok = ok and page.locator(".card.valid .card-mailto").count() == 0
 
         # A flag caused by lowercase title words offers browser-local
         # dictionary actions; accepting the reported words rechecks the title.
