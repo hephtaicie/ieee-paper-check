@@ -53,8 +53,8 @@ function saveAdminConfig(config: Config): void {
   localStorage.setItem(CONFIG_BASE_KEY, JSON.stringify(sharedSiteConfig()));
 }
 
-const config: Config = loadAdminConfig();
 type ReviewStatus = "green" | "orange" | "red";
+const config: Config = loadAdminConfig();
 const reviewStatus = new Map<string, ReviewStatus>(
   Object.entries(JSON.parse(localStorage.getItem(REVIEW_STATUS_KEY) ?? "{}")) as [
     string,
@@ -76,15 +76,11 @@ byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () =>
   app.rerender();
 });
 
-byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () => {
-  const confirmed = window.confirm(
-    `Reset tracking statuses for all ${reviewStatus.size} saved paper(s) to red (action pending)?`,
-  );
-  if (!confirmed) return;
-  reviewStatus.clear();
+function removePaper(file: string): void {
+  reviewStatus.delete(file);
   saveReviewStatus();
-  app.rerender();
-});
+  app.remove(file);
+}
 
 // ---------------------------------------------------------------------------
 // Email template: subject + body with {{id}}, {{title}}, {{filename}} and
@@ -410,6 +406,7 @@ function addReviewStatusControl(r: PaperReport, card: HTMLElement): void {
     reviewStatus.set(r.file, select.value as ReviewStatus);
     select.className = `review-status-select ${select.value}`;
     saveReviewStatus();
+    renderTracker();
   });
   wrap.append(select);
   card.append(wrap);
@@ -462,7 +459,52 @@ const el: AppElements = {
   vHl: byId<HTMLDivElement>("v-hl"),
 };
 
-const app: App = mountApp(el, () => config, augmentCard);
+const trackerFilter = byId<HTMLSelectElement>("tracker-filter");
+trackerFilter.addEventListener("change", () => renderTracker());
+
+function renderTracker(): void {
+  const list = byId<HTMLDivElement>("tracker-list");
+  list.replaceChildren();
+  const filter = trackerFilter.value;
+  for (const report of app.reports) {
+    const status = reviewStatus.get(report.file) ?? "red";
+    if (filter !== "all" && status !== filter) continue;
+    const row = document.createElement("div");
+    row.className = `tracker-row ${status}`;
+    const name = document.createElement("button");
+    name.type = "button";
+    name.className = "tracker-name";
+    name.textContent = report.file;
+    name.title = "Scroll to this paper";
+    name.addEventListener("click", () => {
+      const card = [...document.querySelectorAll<HTMLElement>("#results .card")].find(
+        (candidate) => candidate.querySelector(".fname")?.textContent === report.file,
+      );
+      card?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const badge = document.createElement("span");
+    badge.className = "tracker-status";
+    badge.textContent =
+      status === "green" ? "Validated" : status === "orange" ? "Emailed" : "Pending";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "tracker-remove";
+    remove.setAttribute("aria-label", `Remove ${report.file} from the tracking list`);
+    remove.title = "Remove this paper and reset its tracking status";
+    remove.textContent = "×";
+    remove.addEventListener("click", () => {
+      const confirmed = window.confirm(
+        `Remove ${report.file} from the analyzed papers and reset its status?`,
+      );
+      if (confirmed) removePaper(report.file);
+    });
+    row.append(name, badge, remove);
+    list.append(row);
+  }
+  byId<HTMLElement>("paper-tracker").hidden = app.reports.length === 0;
+}
+
+const app: App = mountApp(el, () => config, augmentCard, renderTracker);
 
 byId<HTMLInputElement>("csv-file").addEventListener("change", async (e) => {
   const f = (e.target as HTMLInputElement).files?.[0];

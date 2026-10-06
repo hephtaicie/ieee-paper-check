@@ -214,6 +214,34 @@ def main() -> int:
             page.wait_for_timeout(500)
         ok = ok and title_card.locator(".check.fail", has_text="Title capitalization").count() == 0
 
+        # Tracker panel: reload a known pair, filter by status, cancel a
+        # remove, then confirm and verify paper/status/card removal.
+        page.locator("#clear-btn").click()
+        page.locator("#file-input").set_input_files([str(bad), str(matched_good)])
+        page.wait_for_selector(".card", timeout=60000)
+        page.wait_for_timeout(1200)
+        page.locator(".card").filter(has_text=bad.name).locator(".review-status-select").select_option("orange")
+        bad_tracker_row = page.locator(".tracker-row").filter(has_text=bad.name)
+        good_tracker_row = page.locator(".tracker-row").filter(has_text=matched_good.name)
+        print("tracker paper rows:", page.locator(".tracker-row").count())
+        ok = ok and page.locator(".tracker-row").count() == 2
+        page.locator("#tracker-filter").select_option("orange")
+        ok = ok and page.locator(".tracker-row").count() == 1
+        ok = ok and page.locator(".tracker-row").first.locator(".tracker-status").inner_text() == "Emailed"
+        page.locator("#tracker-filter").select_option("all")
+        page.once("dialog", lambda dialog: dialog.dismiss())
+        bad_tracker_row.locator(".tracker-remove").click()
+        ok = ok and bad_tracker_row.count() == 1
+        page.once("dialog", lambda dialog: dialog.accept())
+        bad_tracker_row.locator(".tracker-remove").click()
+        ok = ok and bad_tracker_row.count() == 0
+        ok = ok and page.locator(".card").filter(has_text=bad.name).count() == 0
+        page.locator("#clear-btn").click()
+        drop(bad)
+        new_row = page.locator(".tracker-row").filter(has_text=bad.name)
+        ok = ok and new_row.locator(".tracker-status").inner_text() == "Pending"
+        page.locator("#clear-btn").click()
+
         # Allow AD/AE: it no longer fails, but the card shows an informational
         # notice; disabling appendix checks keeps this test focused on AD/AE.
         page.reload()

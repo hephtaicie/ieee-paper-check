@@ -37,6 +37,7 @@ export interface App {
   rerender(): void;
   /** Re-run every stored PDF under the current config and re-render. */
   revalidate(): Promise<void>;
+  remove(file: string): void;
   clear(): void;
 }
 
@@ -245,6 +246,16 @@ export function mountApp(
     clear();
   });
 
+  function remove(file: string): void {
+    const index = reports.findIndex((r) => r.file === file);
+    if (index < 0) return;
+    reports.splice(index, 1);
+    pdfBytes.delete(file);
+    rerender();
+    refreshActions();
+    onReportsChanged?.();
+  }
+
   function clear(): void {
     reports.length = 0;
     pdfBytes.clear();
@@ -259,7 +270,7 @@ export function mountApp(
     el.results.replaceChildren(...reports.map(reportCard));
   }
 
-  return { reports, pdfBytes, rerender, revalidate, clear };
+  return { reports, pdfBytes, rerender, revalidate, remove, clear };
 }
 
 export { esc };
