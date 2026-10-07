@@ -1,8 +1,8 @@
 {
   "minPageLimit": 4,
   "pageLimit": 12,
-  "allowArtifactAppendix": false,
-  "requiredCopyright": null,
+  "allowArtifactAppendix": true,
+  "requiredCopyright": "SC26 Workshops, November 15-20, 2026, Chicago, Illinois, USA\n979-8-3195-1221-5/26/$31.00 ©2026 IEEE",
   "disabledChecks": ["style"],
   "emailTemplate": {
     "subject": "SC26 {{id}}: Camera-ready Revision Required",
