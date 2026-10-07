@@ -71,8 +71,10 @@ always stays inside the browser tab.
 **Authors' page** (`/`) — drop one or many PDFs onto the page; every check
 runs locally and each failure shows its evidence (page, extracted text,
 font name); clicking a failed row opens the PDF page with a highlight box
-around the offending text. The page also displays the deployed page-count
-policy. A CSV report can be downloaded for batches.
+around the offending text. The page displays the deployed page-count policy,
+and its “What is checked” disclosure is generated from the same shared config:
+disabled checks are omitted and a configured required copyright is shown.
+A CSV report can be downloaded for batches.
 
 **Chairs' page** (`/admin.html`) — the same verification UI plus admin
 tooling that regular users do not see:

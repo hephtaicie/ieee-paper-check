@@ -43,6 +43,12 @@ def main() -> int:
         shared = page.locator("#cfg-min-limit").input_value() == "4" and page.locator("#cfg-limit").input_value() == "12"
         print("admin defaults match shared config:", shared)
         ok = shared
+        # Isolate test expectations from the current deployment's SC26
+        # copyright requirement, which is intentionally different from the
+        # generic corpus fixture notices.
+        page.fill("#cfg-copyright", "")
+        page.locator("#cfg-copyright").dispatch_event("change")
+        page.wait_for_timeout(500)
 
         def drop(bad_file: Path) -> None:
             page.locator("#file-input").set_input_files([str(bad_file), str(GOOD)])
