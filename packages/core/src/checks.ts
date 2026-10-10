@@ -52,6 +52,7 @@ function canonicalCopyright(text: string): string {
   return text
     .replace(COPYRIGHT_MARK_RE, "©")
     .normalize("NFKC")
+    .replace(/(\d)--(?=\d)/g, "$1-")
     .replace(/\s+/g, " ")
     .replace(/©\s+(?=\d{4})/g, "©")
     .trim();
