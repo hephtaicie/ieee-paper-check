@@ -36,14 +36,20 @@ def main() -> int:
         page.goto("http://localhost:4173/")
         page.wait_for_load_state("networkidle")
         policy = page.locator("#site-policy").inner_text()
-        checked_text = page.locator("#enabled-checks").text_content() or ""
+        checks_list = page.locator("#enabled-checks")
+        checked_text = checks_list.text_content() or ""
+        enabled_ids = checks_list.locator("li").evaluate_all("items => items.map(item => item.dataset.checkId)")
         print("shared policy:", policy)
         artifact_policy = page.locator("#artifact-policy").text_content() or ""
+        print("enabled checks:", enabled_ids)
         print("enabled-check disclosure:", checked_text)
         print("artifact policy:", artifact_policy)
+        expected_ids = [
+            "copyright", "title", "anonymized", "undefined_refs", "page_limit",
+            "page_numbers", "fonts_embedded", "fonts_type3", "copyright-examples",
+        ]
         ok = (
-            "No page numbers in headers or footers" not in checked_text
-            and "Style conformance" not in checked_text
+            enabled_ids == expected_ids
             and "Artifact Description/Evaluation content is allowed" in artifact_policy
             and "SC26 Workshops" in checked_text
         )

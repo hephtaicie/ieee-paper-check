@@ -56,8 +56,16 @@ const activeChecks = CHECK_ORDER.filter((id) => !siteConfig.disabledChecks.inclu
 checksPolicy.textContent = `${activeChecks.length} checks are enabled for this round:`;
 for (const id of activeChecks) {
   const item = document.createElement("li");
+  item.dataset.checkId = id;
   item.textContent = CHECK_DESCRIPTIONS[id];
   enabledChecks.append(item);
+}
+if (siteConfig.requiredCopyright !== null || siteConfig.acceptedCopyrights.length > 0) {
+  const copyrightList = byId<HTMLUListElement>("enabled-checks");
+  const item = document.createElement("li");
+  item.dataset.checkId = "copyright-examples";
+  item.textContent = `Accepted copyright notice variants: ${[...(siteConfig.requiredCopyright ? [siteConfig.requiredCopyright] : []), ...siteConfig.acceptedCopyrights].join(" OR ")}`;
+  copyrightList.append(item);
 }
 const artifactPolicy = byId<HTMLParagraphElement>("artifact-policy");
 if (siteConfig.allowArtifactAppendix && siteConfig.disabledChecks.includes("artifact_appendix")) {
