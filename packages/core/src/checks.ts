@@ -83,17 +83,24 @@ export function checkCopyright(data: PaperData, config: Config): CheckResult {
   const hasCopyrightYear = COPYYEAR_RE.test(canonicalJoined);
   const hasIeee = IEEE_RE.test(joined);
   const standardValid = hasIsbn && hasPrice && hasCopyrightYear && hasIeee;
+  const acceptedCopyrights = config.acceptedCopyrights ?? [];
+  const requiredVariants = [
+    ...(config.requiredCopyright ? [config.requiredCopyright] : []),
+    ...acceptedCopyrights,
+  ]
+    .map(canonicalCopyright)
+    .filter(Boolean);
   const requiredFound =
-    config.requiredCopyright === null ||
-    canonicalJoined.includes(canonicalCopyright(config.requiredCopyright));
-  const ok = config.requiredCopyright === null ? standardValid : requiredFound;
+    requiredVariants.length === 0 ||
+    requiredVariants.some((variant) => canonicalJoined.includes(variant));
+  const ok = requiredVariants.length === 0 ? standardValid : requiredFound;
   if (ok) return result("copyright", "PASS", []);
   return result("copyright", "FAIL", [
     {
       page: 1,
       detail:
-        config.requiredCopyright !== null && standardValid && !requiredFound
-          ? `Copyright block does not match the required text: '${config.requiredCopyright}'`
+        requiredVariants.length > 0 && standardValid && !requiredFound
+          ? `Copyright block does not match any of the ${requiredVariants.length} configured variants`
           : hasIsbn && hasPriceWithoutDollar && !hasPrice && hasCopyrightYear && hasIeee
             ? "Copyright block appears to be missing the dollar sign before the price " +
               "(found /YY/31.00; expected /YY/$31.00). In LaTeX, escape it as \\$31.00."

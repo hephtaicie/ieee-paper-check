@@ -17,3 +17,4 @@ export function sharedSiteConfig(): Config {
 }
 
 export const SITE_EMAIL_TEMPLATE: MailTemplate = siteConfig.emailTemplate;
+export const SITE_CONFIG_JSON = siteConfig;

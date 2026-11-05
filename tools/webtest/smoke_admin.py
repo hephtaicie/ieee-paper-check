@@ -34,7 +34,21 @@ def main() -> int:
     matched_good.write_bytes(GOOD.read_bytes())
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        context = browser.new_context()
+        page = context.new_page()
+        page.add_init_script("""() => {
+          if (sessionStorage.getItem('smoke-admin-cleaned')) return;
+          [
+            'ieee-check-admin-config-v1',
+            'ieee-check-admin-config-base-v1',
+            'ieee-check-admin-review-status-v1',
+            'ieee-check-admin-tracked-files-v1',
+            'ieee-check-admin-title-allowed-words-v1',
+            'ieee-check-admin-mail-template-v1',
+            'ieee-check-admin-mail-template-base-v1'
+          ].forEach(k => localStorage.removeItem(k));
+          sessionStorage.setItem('smoke-admin-cleaned', '1');
+        }""")
         errors = []
         page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
         page.on("pageerror", lambda e: errors.append(str(e)))
@@ -42,13 +56,13 @@ def main() -> int:
         page.wait_for_load_state("networkidle")
         shared = page.locator("#cfg-min-limit").input_value() == "4" and page.locator("#cfg-limit").input_value() == "12"
         print("admin defaults match shared config:", shared)
-        ok = shared
-        # Isolate test expectations from the current deployment's SC26
-        # copyright requirement, which is intentionally different from the
-        # generic corpus fixture notices.
-        page.fill("#cfg-copyright", "")
-        page.locator("#cfg-copyright").dispatch_event("change")
-        page.wait_for_timeout(500)
+        shared_variants = __import__("json").loads(
+            (ROOT / "packages/web/site-config.json").read_text()
+        )["acceptedCopyrights"]
+        rendered_variants = [row.locator("pre").inner_text() for row in page.locator("#copyright-variants .copyright-variant-row").all()]
+        print("shared copyright variants:", len(shared_variants), "rendered:", len(rendered_variants))
+        print("shared variants match displayed values:", rendered_variants == shared_variants)
+        ok = shared and len(shared_variants) > 0 and rendered_variants == shared_variants
 
         def drop(bad_file: Path) -> None:
             page.locator("#file-input").set_input_files([str(bad_file), str(GOOD)])
@@ -58,6 +72,9 @@ def main() -> int:
         def badges() -> list[str]:
             return [c.locator(".badge").inner_text() for c in page.locator(".card").all()]
 
+        # This smoke test exercises general behavior using generic corpus
+        # PDFs, whose copyright notices do not match the deployed SC policy.
+        page.locator("#cfg-checks .cfg-row", has_text="IEEE copyright").locator("input").uncheck()
         # Paper id in the file name so the CSV matches.
         bad = Path(tempfile.mkdtemp()) / "pap104s3-file2.pdf"
         bad.write_bytes(PDF.read_bytes())
@@ -65,10 +82,12 @@ def main() -> int:
         status_select = page.locator(".card").first.locator(".review-status-select")
         print("default review status:", status_select.input_value())
         ok = ok and status_select.input_value() == "red"
+        print("after default red:", ok)
         status_select.select_option("orange")
         status_select = page.locator(".card").first.locator(".review-status-select")
         print("updated review status:", status_select.input_value())
         ok = ok and status_select.input_value() == "orange"
+        print("after status orange:", ok)
         page.locator("#authors-panel summary").click()
         page.once("dialog", lambda dialog: dialog.dismiss())
         page.locator("#reset-review-statuses").click()
@@ -147,6 +166,7 @@ def main() -> int:
         # expect a mailto button ON the invalid paper's card (not in a
         # separate panel), with the template variables filled in.
         page.locator("#cfg-checks .cfg-row", has_text="Page limit").locator("input").check()
+        # The synthetic variant setup above remains active for this smoke fixture.
         # The minimum-page test left the valid fixture below the max only;
         # restore the expected range and wait for the revalidation to finish.
         page.fill("#cfg-min-limit", "4")
@@ -162,14 +182,16 @@ def main() -> int:
         ok = ok and badges_after_clear == ["✗ INVALID", "✓ VALID"]
         page.locator("#csv-file").set_input_files(str(csv))
         page.wait_for_timeout(800)
-        invalid_links = page.locator(".card.invalid .card-mailto a")
+        invalid_card = page.locator(".card").filter(has_text=bad.name)
+        invalid_links = invalid_card.locator(".card-mailto a")
         manual_invalid = invalid_links.filter(has_text="Compose manual email")
         failed_checks_email = invalid_links.filter(has_text="Email about failed checks")
-        manual_href = manual_invalid.get_attribute("href") or ""
-        failed_href = failed_checks_email.get_attribute("href") or ""
-        valid_links = page.locator(".card.valid .card-mailto a")
+        manual_href = manual_invalid.first.get_attribute("href") or ""
+        failed_href = failed_checks_email.first.get_attribute("href") or ""
+        valid_card = page.locator(".card").filter(has_text=matched_good.name)
+        valid_links = valid_card.locator(".card-mailto a")
         manual_valid = valid_links.filter(has_text="Compose manual email")
-        valid_href = manual_valid.get_attribute("href") or ""
+        valid_href = manual_valid.first.get_attribute("href") or ""
         print("manual/failed-check links:", manual_invalid.count(), failed_checks_email.count())
         valid_body = unquote(valid_href.split("body=")[1]) if "body=" in valid_href else ""
         failed_body = unquote(failed_href.split("body=")[1]) if "body=" in failed_href else ""
@@ -220,44 +242,66 @@ def main() -> int:
             page.wait_for_timeout(500)
         ok = ok and title_card.locator(".check.fail", has_text="Title capitalization").count() == 0
 
-        # Tracker panel: reload a known pair, filter by status, cancel a
-        # remove, then confirm and verify paper/status/card removal.
-        page.locator("#clear-btn").click()
+        # Tracker panel persists papers/statuses across refreshes, filters by
+        # status, and removes a paper plus its status with confirmation.
+        page.evaluate("localStorage.removeItem('ieee-check-admin-review-status-v1'); localStorage.removeItem('ieee-check-admin-tracked-files-v1')")
+        page.reload()
+        page.wait_for_load_state("networkidle")
         page.locator("#file-input").set_input_files([str(bad), str(matched_good)])
         page.wait_for_selector(".card", timeout=60000)
         page.wait_for_timeout(1200)
         page.locator(".card").filter(has_text=bad.name).locator(".review-status-select").select_option("orange")
+        page.locator(".card").filter(has_text=matched_good.name).locator(".review-status-select").select_option("green")
+        bad_tracker_row = page.locator(".tracker-row").filter(has_text=bad.name)
+        print("tracker rows:", page.locator(".tracker-row").count())
+        ok = ok and page.locator(".tracker-row").count() == 2
+        page.reload()
+        page.wait_for_load_state("networkidle")
         bad_tracker_row = page.locator(".tracker-row").filter(has_text=bad.name)
         good_tracker_row = page.locator(".tracker-row").filter(has_text=matched_good.name)
-        print("tracker paper rows:", page.locator(".tracker-row").count())
-        ok = ok and page.locator(".tracker-row").count() == 2
+        print("tracker after reload:", page.locator(".tracker-row").count(), [r.inner_text() for r in page.locator(".tracker-row").all()])
+        ok = ok and bad_tracker_row.locator(".tracker-status").inner_text() == "Emailed"
+        ok = ok and good_tracker_row.locator(".tracker-status").inner_text() == "Validated"
         page.locator("#tracker-filter").select_option("orange")
         ok = ok and page.locator(".tracker-row").count() == 1
         ok = ok and page.locator(".tracker-row").first.locator(".tracker-status").inner_text() == "Emailed"
-        page.locator("#tracker-filter").select_option("all")
+        page.locator("#clear-tracker-filter").click()
         page.once("dialog", lambda dialog: dialog.dismiss())
         bad_tracker_row.locator(".tracker-remove").click()
         ok = ok and bad_tracker_row.count() == 1
         page.once("dialog", lambda dialog: dialog.accept())
         bad_tracker_row.locator(".tracker-remove").click()
-        ok = ok and bad_tracker_row.count() == 0
-        ok = ok and page.locator(".card").filter(has_text=bad.name).count() == 0
+        page.wait_for_function(
+            "file => !JSON.parse(localStorage.getItem('ieee-check-admin-tracked-files-v1') || '[]').includes(file)",
+            arg=bad.name,
+            timeout=5000,
+        )
+        remaining_tracker_files = [row.locator(".tracker-name").inner_text() for row in page.locator(".tracker-row").all()]
+        card_remaining = page.locator(".card").filter(has_text=bad.name).count()
+        print("after tracker remove: rows", remaining_tracker_files, "cards", card_remaining)
+        ok = ok and bad.name not in remaining_tracker_files and card_remaining == 0
         page.locator("#clear-btn").click()
-        drop(bad)
-        new_row = page.locator(".tracker-row").filter(has_text=bad.name)
-        ok = ok and new_row.locator(".tracker-status").inner_text() == "Pending"
-        page.locator("#clear-btn").click()
+        ok = ok and page.locator(".tracker-row").filter(has_text=bad.name).count() == 0
+        page.locator("#file-input").set_input_files([str(bad)])
+        page.wait_for_selector(".card", timeout=60000)
+        page.wait_for_timeout(900)
+        ok = ok and page.locator(".tracker-row").filter(has_text=bad.name).locator(".tracker-status").inner_text() == "Pending"
+        print("post tracker remove assertion:", ok)
 
         # Allow AD/AE: it no longer fails, but the card shows an informational
-        # notice; disabling appendix checks keeps this test focused on AD/AE.
+        # notice; disable unrelated checks and restore the default copyright list.
         page.reload()
         page.wait_for_load_state("networkidle")
+        page.locator("#clear-tracker-filter").click()
         persisted_words = page.evaluate("JSON.parse(localStorage.getItem('ieee-check-admin-title-allowed-words-v1') || '[]')")
         print("dictionary persisted:", len(persisted_words) > 0)
         ok = ok and len(persisted_words) > 0
         page.locator("#cfg-checks .cfg-row", has_text="No AD/AE appendix").locator("input").uncheck()
         page.locator("#cfg-checks .cfg-row", has_text="No appendix in paper").locator("input").uncheck()
         page.locator("#cfg-checks .cfg-row", has_text="Page limit").locator("input").uncheck()
+        page.locator("#cfg-checks .cfg-row", has_text="IEEE copyright").locator("input").uncheck()
+        while page.locator("#copyright-variants .copyright-variant-row button").count():
+            page.locator("#copyright-variants .copyright-variant-row button").first.click()
         page.locator("#cfg-artifact").check()
         page.wait_for_timeout(500)
         adae = Path(tempfile.mkdtemp()) / "adae.pdf"
@@ -268,6 +312,7 @@ def main() -> int:
         print("AD/AE notice:", notice)
         ok = ok and "Informational" in notice and page.locator(".card.invalid").count() == 0
 
+        print("overall smoke assertions passed:", ok)
         if errors:
             print("CONSOLE ERRORS:", errors[:5])
         browser.close()

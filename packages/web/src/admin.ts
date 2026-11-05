@@ -20,6 +20,7 @@ const CONFIG_KEY = "ieee-check-admin-config-v1";
 const CONFIG_BASE_KEY = "ieee-check-admin-config-base-v1";
 const TITLE_WORDS_KEY = "ieee-check-admin-title-allowed-words-v1";
 const REVIEW_STATUS_KEY = "ieee-check-admin-review-status-v1";
+const TRACKED_FILES_KEY = "ieee-check-admin-tracked-files-v1";
 
 function loadAdminConfig(): Config {
   const base = sharedSiteConfig();
@@ -61,9 +62,24 @@ const reviewStatus = new Map<string, ReviewStatus>(
     ReviewStatus,
   ][],
 );
+const trackedFiles = new Set<string>([
+  ...(JSON.parse(localStorage.getItem(TRACKED_FILES_KEY) ?? "[]") as string[]),
+  ...reviewStatus.keys(),
+]);
 
 function saveReviewStatus(): void {
   localStorage.setItem(REVIEW_STATUS_KEY, JSON.stringify(Object.fromEntries(reviewStatus)));
+}
+
+function setPaperStatus(file: string, status: ReviewStatus): void {
+  trackedFiles.add(file);
+  reviewStatus.set(file, status);
+  saveTrackedFiles();
+  saveReviewStatus();
+}
+
+function saveTrackedFiles(): void {
+  localStorage.setItem(TRACKED_FILES_KEY, JSON.stringify([...trackedFiles]));
 }
 
 byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () => {
@@ -72,14 +88,19 @@ byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () =>
   );
   if (!confirmed) return;
   reviewStatus.clear();
+  for (const file of trackedFiles) reviewStatus.set(file, "red");
   saveReviewStatus();
   app.rerender();
+  renderTracker();
 });
 
 function removePaper(file: string): void {
   reviewStatus.delete(file);
+  trackedFiles.delete(file);
   saveReviewStatus();
+  saveTrackedFiles();
   app.remove(file);
+  renderTracker();
 }
 
 // ---------------------------------------------------------------------------
@@ -129,7 +150,7 @@ function renderSettings(): void {
   minLimit.value = String(config.minPageLimit);
   limit.value = String(config.pageLimit);
   byId<HTMLInputElement>("cfg-artifact").checked = config.allowArtifactAppendix;
-  byId<HTMLTextAreaElement>("cfg-copyright").value = config.requiredCopyright ?? "";
+  renderCopyrightVariants();
   const rows = byId<HTMLDivElement>("cfg-checks");
   rows.replaceChildren();
   for (const id of CHECK_ORDER) {
@@ -171,10 +192,41 @@ byId<HTMLInputElement>("cfg-artifact").addEventListener("change", (e) => {
   saveAdminConfig(config);
   void app.revalidate();
 });
-byId<HTMLTextAreaElement>("cfg-copyright").addEventListener("change", (e) => {
-  const value = (e.target as HTMLTextAreaElement).value.trim();
-  config.requiredCopyright = value || null;
+function renderCopyrightVariants(): void {
+  const list = byId<HTMLDivElement>("copyright-variants");
+  list.replaceChildren();
+  for (const [index, value] of config.acceptedCopyrights.entries()) {
+    const row = document.createElement("div");
+    row.className = "copyright-variant-row";
+    const text = document.createElement("pre");
+    text.textContent = value;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "btn ghost";
+    remove.textContent = "Remove";
+    remove.setAttribute("aria-label", `Remove copyright variant ${index + 1}`);
+    remove.addEventListener("click", () => {
+      config.acceptedCopyrights = config.acceptedCopyrights.filter((_, i) => i !== index);
+      saveAdminConfig(config);
+      renderCopyrightVariants();
+      void app.revalidate();
+    });
+    row.append(text, remove);
+    list.append(row);
+  }
+}
+
+byId<HTMLButtonElement>("cfg-copyright-add").addEventListener("click", () => {
+  const input = byId<HTMLTextAreaElement>("cfg-copyright-new");
+  const value = input.value.trim();
+  if (!value) return;
+  if (!config.acceptedCopyrights.some((item) => item.trim() === value)) {
+    config.acceptedCopyrights = [...config.acceptedCopyrights, value];
+  }
+  config.requiredCopyright = null;
+  input.value = "";
   saveAdminConfig(config);
+  renderCopyrightVariants();
   void app.revalidate();
 });
 
@@ -256,10 +308,10 @@ function parseCsv(text: string): void {
   // Prefer the complete author list in "Contact Emails"; the export's
   // plain "Email" column is only the submitter/contact address.
   const head = csvCells(lines[0]!).map((c) => c.trim().toLowerCase());
-  let idCol = head.findIndex((c) => c === "submission");
-  let mailCol = head.findIndex((c) => c === "contact emails");
-  if (mailCol === -1) mailCol = head.findIndex((c) => c === "emails");
-  if (mailCol === -1) mailCol = head.findIndex((c) => c === "email");
+  let idCol = head.indexOf("submission");
+  let mailCol = head.indexOf("contact emails");
+  if (mailCol === -1) mailCol = head.indexOf("emails");
+  if (mailCol === -1) mailCol = head.indexOf("email");
   if (mailCol === -1) mailCol = head.findIndex((c) => c.includes("email"));
   if (idCol === -1 || mailCol === -1) {
     idCol = 0;
@@ -384,6 +436,8 @@ function appendMailButton(footer: HTMLElement, href: string, label: string): voi
 }
 
 function addReviewStatusControl(r: PaperReport, card: HTMLElement): void {
+  trackedFiles.add(r.file);
+  saveTrackedFiles();
   const wrap = document.createElement("label");
   wrap.className = "review-status-control";
   wrap.append(document.createTextNode("Tracking status"));
@@ -403,9 +457,8 @@ function addReviewStatusControl(r: PaperReport, card: HTMLElement): void {
     select.append(option);
   }
   select.addEventListener("change", () => {
-    reviewStatus.set(r.file, select.value as ReviewStatus);
+    setPaperStatus(r.file, select.value as ReviewStatus);
     select.className = `review-status-select ${select.value}`;
-    saveReviewStatus();
     renderTracker();
   });
   wrap.append(select);
@@ -461,24 +514,33 @@ const el: AppElements = {
 
 const trackerFilter = byId<HTMLSelectElement>("tracker-filter");
 trackerFilter.addEventListener("change", () => renderTracker());
+byId<HTMLButtonElement>("clear-tracker-filter").addEventListener("click", () => {
+  trackerFilter.value = "all";
+  renderTracker();
+});
 
 function renderTracker(): void {
   const list = byId<HTMLDivElement>("tracker-list");
   list.replaceChildren();
   const filter = trackerFilter.value;
-  for (const report of app.reports) {
-    const status = reviewStatus.get(report.file) ?? "red";
+  const reportsByFile = new Map(app.reports.map((report) => [report.file, report]));
+  for (const file of trackedFiles) {
+    const report = reportsByFile.get(file);
+    const status = reviewStatus.get(file) ?? "red";
     if (filter !== "all" && status !== filter) continue;
     const row = document.createElement("div");
     row.className = `tracker-row ${status}`;
     const name = document.createElement("button");
     name.type = "button";
     name.className = "tracker-name";
-    name.textContent = report.file;
-    name.title = "Scroll to this paper";
+    name.textContent = file;
+    name.title = report
+      ? "Scroll to this paper"
+      : "Paper not currently loaded; drop it again to inspect";
+    name.disabled = report === undefined;
     name.addEventListener("click", () => {
       const card = [...document.querySelectorAll<HTMLElement>("#results .card")].find(
-        (candidate) => candidate.querySelector(".fname")?.textContent === report.file,
+        (candidate) => candidate.querySelector(".fname")?.textContent === file,
       );
       card?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
@@ -489,22 +551,23 @@ function renderTracker(): void {
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "tracker-remove";
-    remove.setAttribute("aria-label", `Remove ${report.file} from the tracking list`);
+    remove.setAttribute("aria-label", `Remove ${file} from the tracking list`);
     remove.title = "Remove this paper and reset its tracking status";
     remove.textContent = "×";
     remove.addEventListener("click", () => {
       const confirmed = window.confirm(
-        `Remove ${report.file} from the analyzed papers and reset its status?`,
+        `Remove ${file} from the analyzed papers and reset its status?`,
       );
-      if (confirmed) removePaper(report.file);
+      if (confirmed) removePaper(file);
     });
     row.append(name, badge, remove);
     list.append(row);
   }
-  byId<HTMLElement>("paper-tracker").hidden = app.reports.length === 0;
+  byId<HTMLElement>("paper-tracker").hidden = trackedFiles.size === 0;
 }
 
 const app: App = mountApp(el, () => config, augmentCard, renderTracker);
+renderTracker();
 
 byId<HTMLInputElement>("csv-file").addEventListener("change", async (e) => {
   const f = (e.target as HTMLInputElement).files?.[0];

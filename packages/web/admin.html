@@ -38,10 +38,15 @@
         <input id="cfg-artifact" type="checkbox" />
         Allow Artifact Description/Evaluation sections (show an informational notice on matching papers)
       </label>
-      <label class="cfg-limit cfg-copyright">
-        Required copyright text
-        <textarea id="cfg-copyright" rows="2" placeholder="Leave blank to accept any valid IEEE copyright"></textarea>
-      </label>
+      <div class="cfg-copyright-list">
+        <strong>Accepted copyright variants</strong>
+        <div id="copyright-variants"></div>
+        <div class="copyright-add-row">
+          <textarea id="cfg-copyright-new" rows="2" placeholder="Add a complete copyright notice variant"></textarea>
+          <button id="cfg-copyright-add" type="button" class="btn ghost">Add variant</button>
+        </div>
+        <span class="muted">A paper passes when its page-1 copyright area matches any listed variant. Leave the list empty to accept any otherwise-valid IEEE notice.</span>
+      </div>
       <p class="muted">Deploy-time defaults for both pages are configured in <code>packages/web/site-config.json</code>.</p>
       <div id="cfg-checks"></div>
     </div>
@@ -123,6 +128,7 @@
         <option value="orange">Orange</option>
         <option value="red">Red</option>
       </select>
+      <button id="clear-tracker-filter" type="button" class="tracker-filter-clear" aria-label="Clear tracking status filter" title="Clear filter">×</button>
     </div>
     <div id="tracker-list"></div>
   </aside>

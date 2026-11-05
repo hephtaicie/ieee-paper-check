@@ -89,7 +89,12 @@ export interface PaperReport {
 export interface Config {
   minPageLimit: number;
   pageLimit: number;
+  /** Legacy single accepted copyright variant; prefer acceptedCopyrights. */
   requiredCopyright: string | null;
+  /** Any normalized variant may satisfy the copyright check. Empty means
+   * accept any otherwise-valid IEEE copyright notice (unless legacy
+   * requiredCopyright is set). */
+  acceptedCopyrights: string[];
   allowArtifactAppendix: boolean;
   smallWords: string[];
   acronyms: string[];
@@ -106,6 +111,7 @@ export const DEFAULT_CONFIG: Config = {
   minPageLimit: 4,
   pageLimit: 12,
   requiredCopyright: null,
+  acceptedCopyrights: [],
   allowArtifactAppendix: false,
   forbidAppendices: true,
   // Implemented but not enforced yet; enable it with a config file that

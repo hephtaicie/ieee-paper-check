@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 import type { CheckId } from "@ieee-check/core";
-import { CHECK_LABELS, CHECK_ORDER } from "@ieee-check/core";
+import { CHECK_ORDER } from "@ieee-check/core";
 import { type AppElements, mountApp } from "./app.ts";
 import { sharedSiteConfig } from "./site-config.ts";
 

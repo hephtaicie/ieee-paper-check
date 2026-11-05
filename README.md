@@ -108,6 +108,10 @@ admin email subject and body:
   "pageLimit": 12,
   "allowArtifactAppendix": false,
   "requiredCopyright": null,
+  "acceptedCopyrights": [
+    "Conference name, date, location\\n979-8-3195-1221-5/26/$31.00 ©2026 IEEE",
+    "Alternative conference notice\\n979-8-3195-1221-5/26/$31.00 ©2026 IEEE"
+  ],
   "disabledChecks": ["style"],
   "emailTemplate": {
     "subject": "Revision required for {{id}}",
