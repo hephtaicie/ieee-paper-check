@@ -159,6 +159,15 @@ header h1 {
   color: var(--muted);
   font-size: 0.85rem;
 }
+.rechecked-badge {
+  flex: 0 0 auto;
+  border: 1px solid #b9c4e4;
+  border-radius: 999px;
+  padding: 0.12rem 0.48rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
 
 .checks {
   padding: 0.4rem 0;

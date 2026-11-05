@@ -9,6 +9,7 @@ Usage: uv run --with playwright python tools/webtest/smoke.py
 """
 
 import sys
+import tempfile
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -69,7 +70,17 @@ def main() -> int:
             expected_failures = (["IEEE copyright on p.1"] + exp_fails) if "SC26 Workshops" in checked_text else exp_fails
             ok = ok and badge == ("✗ INVALID" if expected_failures else exp_badge) and fails == expected_failures and preview_button.is_enabled()
 
-        page.locator(".card").first.locator(".preview-button").click()
+        replacement = Path(tempfile.mkdtemp()) / "good.pdf"
+        replacement.write_bytes((ROOT / "corpus/pdfs/bad_type3.pdf").read_bytes())
+        page.locator("#file-input").set_input_files(str(replacement))
+        page.wait_for_timeout(1500)
+        same_name_cards = page.locator(".card").filter(has_text="good.pdf")
+        rechecked = same_name_cards.locator(".rechecked-badge")
+        replacement_failures = [l.inner_text() for l in same_name_cards.locator(".check.fail .label").all()]
+        print("same-name replacement cards:", same_name_cards.count(), "rechecked:", rechecked.inner_text() if rechecked.count() else "missing", "failures:", replacement_failures)
+        ok = ok and same_name_cards.count() == 1 and rechecked.count() == 1 and "No Type 3 fonts" in replacement_failures and page.locator(".card").count() == len(FILES)
+
+        page.locator(".card").filter(has_text="bad_title_case.pdf").locator(".preview-button").click()
         preview = page.locator(".preview-dialog")
         page.wait_for_timeout(1000)
         preview_label = page.locator(".preview-title").inner_text()

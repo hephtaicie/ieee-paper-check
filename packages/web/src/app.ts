@@ -55,6 +55,7 @@ export function mountApp(
   const reports: PaperReport[] = [];
   let revalidateRun = 0;
   const pdfBytes = new Map<string, Uint8Array>();
+  const recheckedAt = new Map<string, string>();
 
   // Configure the pdf.js worker before any document is opened.
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -121,6 +122,14 @@ export function mountApp(
     head.innerHTML = `<span class="badge">${badge}</span><button type="button" class="fname file-preview" aria-label="Open full PDF preview for ${esc(r.file)}" title="Open full PDF preview">${esc(r.file)}</button><span class="pages">${r.pageCount} pages</span>`;
     const filePreview = head.querySelector<HTMLButtonElement>(".file-preview")!;
     filePreview.addEventListener("click", () => viewer.open(r.file, 1));
+    const checkedAt = recheckedAt.get(r.file);
+    if (checkedAt) {
+      const marker = document.createElement("span");
+      marker.className = "rechecked-badge";
+      marker.textContent = `Rechecked ${checkedAt}`;
+      marker.title = `Uploaded and checked again at ${checkedAt}`;
+      head.append(marker);
+    }
     const previewButton = document.createElement("button");
     previewButton.type = "button";
     previewButton.className = "btn ghost preview-button";
@@ -174,7 +183,9 @@ export function mountApp(
   async function handleFiles(files: FileList | File[]): Promise<void> {
     for (const f of Array.from(files)) {
       if (!f.name.toLowerCase().endsWith(".pdf")) continue;
-      let card: HTMLElement | null = null;
+      const existingIndex = reports.findIndex((r) => r.file === f.name);
+      const isRecheck = existingIndex >= 0 || pdfBytes.has(f.name);
+      let card: HTMLElement;
       try {
         // Await the WASM backend (already imported at module load).
         const bytes = new Uint8Array(await f.arrayBuffer());
@@ -182,7 +193,10 @@ export function mountApp(
         // keep an independent copy for the viewer.
         pdfBytes.set(f.name, bytes.slice());
         const r = await validate(bytes, f.name, getConfig());
-        reports.push(r);
+        if (existingIndex >= 0) reports.splice(existingIndex, 1, r);
+        else reports.push(r);
+        recheckedAt.delete(f.name);
+        if (isRecheck) recheckedAt.set(f.name, new Date().toLocaleString());
         card = reportCard(r);
       } catch (e) {
         const err = document.createElement("article");
@@ -190,7 +204,11 @@ export function mountApp(
         err.innerHTML = `<div class="card-head"><span class="badge">ERROR</span><span class="fname">${esc(f.name)}</span></div><div class="checks"><div class="check fail has-evidence"><span class="mark">✗</span><span class="label">Could not analyse this PDF</span><span class="evidence">${esc((e as Error).message)}</span></div></div>`;
         card = err;
       }
-      el.results.append(card);
+      const oldCard = [...el.results.querySelectorAll<HTMLElement>(".card")].find(
+        (item) => item.querySelector(".fname")?.textContent === f.name,
+      );
+      if (oldCard) oldCard.replaceWith(card);
+      else el.results.append(card);
     }
     refreshActions();
     onReportsChanged?.();

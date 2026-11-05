@@ -226,6 +226,16 @@ def main() -> int:
         print("subject:", unquote(subj)[:80])
         ok = ok and "pap104s3" in unquote(subj) and "Data-Aware" in unquote(subj)
         print("before dictionary block ok", ok)
+        before_recheck_status = invalid_card.locator(".review-status-select").input_value()
+        replacement_bad = Path(tempfile.mkdtemp()) / bad.name
+        replacement_bad.write_bytes(GOOD.read_bytes())
+        page.locator("#file-input").set_input_files(str(replacement_bad))
+        page.wait_for_timeout(1000)
+        rechecked_card = page.locator(".card").filter(has_text=bad.name)
+        print("recheck state:", rechecked_card.count(), rechecked_card.locator(".badge").inner_text(), rechecked_card.locator(".rechecked-badge").count())
+        ok = ok and rechecked_card.count() == 1 and rechecked_card.locator(".badge").inner_text() == "✓ VALID"
+        ok = ok and rechecked_card.locator(".rechecked-badge").count() == 1
+        ok = ok and rechecked_card.locator(".review-status-select").input_value() == before_recheck_status
 
         # A flag caused by lowercase title words offers browser-local
         # dictionary actions; accepting the reported words rechecks the title.
