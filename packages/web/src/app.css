@@ -495,6 +495,7 @@ footer ul {
   z-index: 1;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
   padding: 0.55rem 0.65rem;
   background: var(--panel);
@@ -527,13 +528,14 @@ footer ul {
   color: var(--ink);
 }
 .tracker-reset {
+  flex: 1 0 100%;
   border: 1px solid var(--line);
   border-radius: 5px;
-  padding: 0.2rem 0.35rem;
+  padding: 0.3rem 0.45rem;
   background: var(--panel);
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   white-space: nowrap;
 }
 .tracker-reset:hover {
