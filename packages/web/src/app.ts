@@ -115,6 +115,7 @@ export function mountApp(
   function reportCard(r: PaperReport): HTMLElement {
     const card = document.createElement("article");
     card.className = `card ${r.valid ? "valid" : "invalid"}`;
+    card.dataset.paperFile = r.file;
 
     const head = document.createElement("div");
     head.className = "card-head";

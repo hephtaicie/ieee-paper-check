@@ -82,25 +82,12 @@ function saveTrackedFiles(): void {
   localStorage.setItem(TRACKED_FILES_KEY, JSON.stringify([...trackedFiles]));
 }
 
-byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () => {
-  const confirmed = window.confirm(
-    `Reset tracking statuses for all ${reviewStatus.size} saved paper(s) to red (action pending)?`,
-  );
-  if (!confirmed) return;
-  reviewStatus.clear();
-  for (const file of trackedFiles) reviewStatus.set(file, "red");
-  saveReviewStatus();
-  app.rerender();
-  renderTracker();
-});
-
 function removePaper(file: string): void {
   reviewStatus.delete(file);
   trackedFiles.delete(file);
   saveReviewStatus();
   saveTrackedFiles();
   app.remove(file);
-  renderTracker();
 }
 
 // ---------------------------------------------------------------------------
@@ -568,6 +555,28 @@ function renderTracker(): void {
 
 const app: App = mountApp(el, () => config, augmentCard, renderTracker);
 renderTracker();
+byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () => {
+  if (!window.confirm(`Reset statuses for all ${trackedFiles.size} tracked paper(s) to red?`))
+    return;
+  for (const file of trackedFiles) reviewStatus.set(file, "red");
+  saveReviewStatus();
+  app.rerender();
+  renderTracker();
+});
+
+byId<HTMLButtonElement>("clear-paper-tracker").addEventListener("click", () => {
+  if (
+    !window.confirm(
+      `Remove all ${trackedFiles.size} papers from the tracking list and clear their saved statuses?`,
+    )
+  )
+    return;
+  trackedFiles.clear();
+  reviewStatus.clear();
+  saveTrackedFiles();
+  saveReviewStatus();
+  renderTracker();
+});
 
 byId<HTMLInputElement>("csv-file").addEventListener("change", async (e) => {
   const f = (e.target as HTMLInputElement).files?.[0];

@@ -526,6 +526,20 @@ footer ul {
 .tracker-filter-clear:hover {
   color: var(--ink);
 }
+.tracker-reset {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 0.2rem 0.35rem;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.tracker-reset:hover {
+  color: var(--bad);
+  border-color: var(--bad);
+}
 .tracker-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto 1.6rem;

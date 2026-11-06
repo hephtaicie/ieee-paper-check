@@ -236,10 +236,19 @@ def main() -> int:
         ok = ok and rechecked_card.count() == 1 and rechecked_card.locator(".badge").inner_text() == "✓ VALID"
         ok = ok and rechecked_card.locator(".rechecked-badge").count() == 1
         ok = ok and rechecked_card.locator(".review-status-select").input_value() == before_recheck_status
+        page.locator("#file-input").set_input_files(str(bad))
+        page.wait_for_timeout(800)
+        still_one_card = page.locator(".card").filter(has_text=bad.name)
+        ok = ok and still_one_card.count() == 1 and still_one_card.locator(".rechecked-badge").count() == 1
+        ok = ok and still_one_card.locator(".badge").inner_text() == "✗ INVALID"
+        ok = ok and still_one_card.locator(".review-status-select").input_value() == before_recheck_status
 
         # A flag caused by lowercase title words offers browser-local
         # dictionary actions; accepting the reported words rechecks the title.
+        page.once("dialog", lambda dialog: dialog.accept())
+        page.locator("#clear-paper-tracker").click()
         page.locator("#clear-btn").click()
+        page.evaluate("localStorage.removeItem('ieee-check-admin-review-status-v1'); localStorage.removeItem('ieee-check-admin-tracked-files-v1')")
         title_bad = ROOT / "corpus/pdfs/bad_title_case.pdf"
         drop(title_bad)
         title_card = page.locator(".card").first
@@ -267,11 +276,15 @@ def main() -> int:
         good_tracker_row = page.locator('.tracker-row').filter(has_text='pap200x1-good.pdf')
         ok = ok and bad_tracker_row.locator('.tracker-status').inner_text() == 'Emailed'
         ok = ok and good_tracker_row.locator('.tracker-status').inner_text() == 'Validated'
+        print('tracker reload assertions', ok)
         page.locator('#tracker-filter').select_option('orange')
-        ok = ok and page.locator('.tracker-row').count() == 1
+        orange_rows = page.locator('.tracker-row').count()
+        print('orange tracker rows', orange_rows)
+        ok = ok and orange_rows == 1
         page.locator('#clear-tracker-filter').click()
         page.once('dialog', lambda dialog: dialog.dismiss())
         bad_tracker_row.locator('.tracker-remove').click()
+        print('cancel remove row count', bad_tracker_row.count())
         ok = ok and bad_tracker_row.count() == 1
         page.once('dialog', lambda dialog: dialog.accept())
         bad_tracker_row.locator('.tracker-remove').click()
@@ -280,8 +293,8 @@ def main() -> int:
             arg='pap104s3-file2.pdf',
             timeout=5000,
         )
-        page.wait_for_timeout(150)
-        remaining = [row.locator('.tracker-name').inner_text() for row in page.locator('.tracker-row').all()]
+        remaining = page.evaluate("JSON.parse(localStorage.getItem('ieee-check-admin-tracked-files-v1') || '[]')")
+        print('persisted tracker files after confirm', remaining)
         ok = ok and 'pap104s3-file2.pdf' not in remaining and remaining == ['pap200x1-good.pdf']
 
         # Allow AD/AE: it no longer fails, but the card shows an informational
