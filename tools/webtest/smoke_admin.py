@@ -250,8 +250,13 @@ def main() -> int:
         page.locator("#clear-btn").click()
         page.evaluate("localStorage.removeItem('ieee-check-admin-review-status-v1'); localStorage.removeItem('ieee-check-admin-tracked-files-v1')")
         title_bad = ROOT / "corpus/pdfs/bad_title_case.pdf"
-        drop(title_bad)
-        title_card = page.locator(".card").first
+        page.locator("#file-input").set_input_files([str(title_bad), str(GOOD)])
+        page.wait_for_selector(".card", timeout=60000)
+        page.wait_for_timeout(1000)
+        other_card = page.locator(".card").filter(has_text="good.pdf")
+        other_verdict_before = other_card.locator(".badge").inner_text()
+        other_rechecked_before = other_card.locator(".rechecked-badge").count()
+        title_card = page.locator(".card").filter(has_text="bad_title_case.pdf")
         dictionary_buttons = title_card.locator(".title-dictionary-actions button")
         dictionary_words = [b.inner_text().lstrip("+ ") for b in dictionary_buttons.all()]
         print("title dictionary suggestions:", dictionary_words)
@@ -261,6 +266,11 @@ def main() -> int:
             title_card.locator(".title-dictionary-actions button").first.click()
             page.wait_for_timeout(500)
         ok = ok and title_card.locator(".check.fail", has_text="Title capitalization").count() == 0
+        other_card_after = page.locator(".card").filter(has_text="good.pdf")
+        other_verdict_after = other_card_after.locator(".badge").inner_text()
+        other_rechecked_after = other_card_after.locator(".rechecked-badge").count()
+        print("dictionary rechecked neighboring PDF:", other_verdict_before, other_verdict_after, other_rechecked_before, other_rechecked_after)
+        ok = ok and other_verdict_after == other_verdict_before and other_rechecked_after == other_rechecked_before
         print("dictionary resolves title assertion:", ok)
 
         print("before tracker block ok", ok)

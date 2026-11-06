@@ -388,7 +388,7 @@ function addTitleWordButtons(r: PaperReport, card: HTMLElement): void {
       config.titleAllowedWords = [...entries];
       localStorage.setItem(TITLE_WORDS_KEY, JSON.stringify(config.titleAllowedWords));
       saveAdminConfig(config);
-      void app.revalidate();
+      void app.revalidateFile(r.file);
     });
     row.append(button);
   }

@@ -37,6 +37,8 @@ export interface App {
   rerender(): void;
   /** Re-run every stored PDF under the current config and re-render. */
   revalidate(): Promise<void>;
+  /** Re-run one stored PDF under the current config and replace its report. */
+  revalidateFile(file: string): Promise<void>;
   remove(file: string): void;
   clear(): void;
 }
@@ -215,6 +217,22 @@ export function mountApp(
     onReportsChanged?.();
   }
 
+  async function revalidateFile(file: string): Promise<void> {
+    const bytes = pdfBytes.get(file);
+    if (!bytes) return;
+    const index = reports.findIndex((r) => r.file === file);
+    if (index < 0) return;
+    const r = await validate(bytes.slice(), file, getConfig());
+    reports.splice(index, 1, r);
+    el.results.querySelectorAll<HTMLElement>(".card").forEach((card) => {
+      if (card.querySelector(".fname")?.textContent === file) {
+        card.replaceWith(reportCard(r));
+      }
+    });
+    refreshActions();
+    onReportsChanged?.();
+  }
+
   async function revalidate(): Promise<void> {
     if (pdfBytes.size === 0) return;
     // Revalidations race when settings change quickly; only the latest
@@ -289,7 +307,7 @@ export function mountApp(
     el.results.replaceChildren(...reports.map(reportCard));
   }
 
-  return { reports, pdfBytes, rerender, revalidate, remove, clear };
+  return { reports, pdfBytes, rerender, revalidate, revalidateFile, remove, clear };
 }
 
 export { esc };
