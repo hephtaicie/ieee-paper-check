@@ -46,7 +46,8 @@ const CHECK_DESCRIPTIONS: Record<CheckId, string> = {
   undefined_refs: "No unresolved references (?? or [?])",
   page_limit: `Main content is ${siteConfig.minPageLimit}–${siteConfig.pageLimit} pages; references excluded`,
   page_numbers: "No page numbers in headers or footers",
-  style: "Style conformance: template font sizes, bibliography font, and no coloured text",
+  font_size: "Font sizes follow the IEEE template",
+  style: "Bibliography uses the template serif font; no coloured text",
   fonts_embedded: "All fonts are embedded",
   fonts_type3: "No Type 3 fonts",
 };

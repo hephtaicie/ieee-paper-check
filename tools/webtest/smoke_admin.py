@@ -43,20 +43,33 @@ def main() -> int:
         page.wait_for_load_state("networkidle")
         site_config = __import__("json").loads((ROOT / "packages/web/site-config.json").read_text())
         shared = page.locator("#cfg-min-limit").input_value() == str(site_config["minPageLimit"]) and page.locator("#cfg-limit").input_value() == str(site_config["pageLimit"])
-        print("admin defaults match shared config:", shared)
-        shared_variants = __import__("json").loads(
-            (ROOT / "packages/web/site-config.json").read_text()
-        )["acceptedCopyrights"]
-        page.locator("#cfg-checks .cfg-row", has_text="IEEE copyright").locator("input").uncheck()
-        page.locator("#cfg-checks .cfg-row", has_text="No page numbers").locator("input").uncheck()
-        page.locator("#cfg-min-limit").fill("0")
-        page.locator("#cfg-min-limit").dispatch_event("change")
-        page.wait_for_timeout(500)
+        font_size_row = page.locator("#cfg-checks .cfg-row").filter(has_text="Template font sizes")
+        style_row = page.locator("#cfg-checks .cfg-row").filter(has_text="Bibliography font and text colour")
+        shared_variants = site_config["acceptedCopyrights"]
+        font_size_enabled = "font_size" not in site_config["disabledChecks"] and font_size_row.locator("input").is_checked()
+        style_disabled = "style" in site_config["disabledChecks"] and not style_row.locator("input").is_checked()
+        font_size_row.locator("input").uncheck()
+        font_size_only_disabled = not font_size_row.locator("input").is_checked() and not style_row.locator("input").is_checked()
+        font_size_row.locator("input").check()
         rendered_variants = [row.locator("pre").inner_text() for row in page.locator("#copyright-variants .copyright-variant-row").all()]
         print("shared copyright variants:", len(shared_variants), "rendered:", len(rendered_variants))
         print("shared variants match displayed values:", rendered_variants == shared_variants)
-        ok = shared and len(shared_variants) > 0 and rendered_variants == shared_variants
-        print("shared config assertion:", ok)
+        print("font-size-only option is independently controlled:", font_size_enabled, font_size_only_disabled)
+        ok = shared and font_size_enabled and style_disabled and font_size_only_disabled and len(shared_variants) > 0 and rendered_variants == shared_variants
+
+        # Isolate behavior tests from deployment-specific round policy while
+        # preserving the shared config assertion above.
+        page.evaluate("localStorage.removeItem('ieee-check-admin-config-v1'); localStorage.removeItem('ieee-check-admin-config-base-v1')")
+        page.reload()
+        page.wait_for_load_state("networkidle")
+        page.locator("#cfg-checks .cfg-row", has_text="IEEE copyright").locator("input").uncheck()
+        page.locator("#cfg-checks .cfg-row", has_text="Template font sizes").locator("input").uncheck()
+        page.locator("#cfg-checks .cfg-row", has_text="No page numbers").locator("input").uncheck()
+        page.locator("#cfg-min-limit").fill("0")
+        page.locator("#cfg-min-limit").dispatch_event("change")
+        page.locator("#cfg-limit").fill("12")
+        page.locator("#cfg-limit").dispatch_event("change")
+        page.wait_for_timeout(500)
 
         def drop(bad_file: Path) -> None:
             page.locator("#file-input").set_input_files([str(bad_file), str(GOOD)])

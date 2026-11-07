@@ -345,7 +345,7 @@ VARIANTS_SPEC: dict[str, dict] = {
             "varies with the aggregated DER output.} We model this as a parametrised",
             1,
         ),
-        "expected": {"style": "FAIL"},
+        "expected": {"font_size": "FAIL"},
     },
     "bad_style_bibfont": {
         "tex": render(n_blocks=6, preamble="\\usepackage{lmodern}\n").replace(
@@ -373,6 +373,8 @@ ALL_CHECKS = [
     "undefined_refs",
     "page_limit",
     "page_numbers",
+    "font_size",
+    "style",
     "fonts_embedded",
     "fonts_type3",
 ]

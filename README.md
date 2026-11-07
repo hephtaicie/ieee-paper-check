@@ -16,9 +16,10 @@ your machine — no PDF ever leaves it.
 | 6 | No unresolved LaTeX references (`??` or `[?]`) |
 | 7 | Main content is at least 4 and at most 12 pages by default, references excluded (both limits are configurable) |
 | 8 | No page numbers in margins |
-| 9 | Style conformance: template font sizes (no squeezed sub-body text), bibliography in the template's serif font, no coloured text (figures are exempt) — implemented but disabled by default (`disabledChecks` in the config) |
-| 10 | All fonts embedded |
-| 11 | No Type 3 fonts |
+| 9 | Template font sizes (no squeezed sub-body text) — opt-in as `font_size` |
+| 10 | Bibliography uses the template serif font; no coloured text (figures exempt) — independently opt-in as `style` |
+| 11 | All fonts embedded |
+| 12 | No Type 3 fonts |
 
 All checks are hard failures, as required by the chairs. Every failure comes
 with evidence (page number, extracted text, font names) so a human can verify
@@ -158,9 +159,11 @@ conference/check round. Example:
 - `disabledChecks` — check ids to skip entirely: they produce no report
   row and never affect the verdict. Available ids: `copyright`,
   `title`, `artifact_appendix`, `appendix`, `anonymized`,
-  `undefined_refs`, `page_limit`, `page_numbers`, `style`,
-  `fonts_embedded`, `fonts_type3`. Use an empty list to run all checks,
-  including the not-yet-enforced style check.
+  `undefined_refs`, `page_limit`, `page_numbers`, `font_size`, `style`,
+  `fonts_embedded`, `fonts_type3`. To run only font-size validation,
+  remove `font_size` from this list and leave `style` disabled. Enable
+  `style` separately for bibliography-font and colour checks. Use an
+  empty list to run every check.
 
 ## Repo layout
 

@@ -48,6 +48,8 @@ ALL_CHECKS = [
     "undefined_refs",
     "page_limit",
     "page_numbers",
+    "font_size",
+    "style",
     "fonts_embedded",
     "fonts_type3",
 ]

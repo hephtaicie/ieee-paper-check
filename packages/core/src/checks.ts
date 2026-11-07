@@ -562,11 +562,14 @@ export function checkPageNumbers(data: PaperData): CheckResult {
  * Not in the default disabledChecks list means it runs and can fail a
  * paper; see Config.disabledChecks.
  */
+export function checkFontSize(data: PaperData): CheckResult {
+  const problems = sizeProblems(data);
+  if (problems.length === 0) return result("font_size", "PASS", []);
+  return result("font_size", "FAIL", problems.slice(0, 10));
+}
+
 export function checkStyle(data: PaperData): CheckResult {
-  const problems: Evidence[] = [];
-  problems.push(...sizeProblems(data));
-  problems.push(...bibFontProblems(data));
-  problems.push(...colorProblems(data));
+  const problems = [...bibFontProblems(data), ...colorProblems(data)];
   if (problems.length === 0) return result("style", "PASS", []);
   return result("style", "FAIL", problems.slice(0, 10));
 }

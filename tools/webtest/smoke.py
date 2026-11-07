@@ -8,6 +8,7 @@ Usage: uv run --with playwright python tools/webtest/smoke.py
 (run from the repo root; needs `playwright install chromium` once)
 """
 
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -45,15 +46,20 @@ def main() -> int:
         print("enabled checks:", enabled_ids)
         print("enabled-check disclosure:", checked_text)
         print("artifact policy:", artifact_policy)
-        expected_ids = [
-            "copyright", "title", "anonymized", "undefined_refs", "page_limit",
-            "page_numbers", "fonts_embedded", "fonts_type3", "copyright-examples",
+        site_config = json.loads((ROOT / "packages/web/site-config.json").read_text())
+        from_keys = [
+            "copyright", "title", "artifact_appendix", "appendix", "anonymized",
+            "undefined_refs", "page_limit", "page_numbers", "font_size", "style",
+            "fonts_embedded", "fonts_type3",
         ]
-        ok = (
-            enabled_ids == expected_ids
-            and "Artifact Description/Evaluation content is allowed" in artifact_policy
-            and "SC26 Workshops" in checked_text
-        )
+        expected_ids = [check_id for check_id in from_keys if check_id not in site_config["disabledChecks"]]
+        if site_config.get("requiredCopyright") or site_config.get("acceptedCopyrights"):
+            expected_ids.append("copyright-examples")
+        ok = enabled_ids == expected_ids
+        if site_config.get("allowArtifactAppendix"):
+            ok = ok and "Artifact Description/Evaluation content is allowed" in artifact_policy
+        if site_config.get("acceptedCopyrights"):
+            ok = ok and "SC26 Workshops" in checked_text
         page.locator("#file-input").set_input_files([str(f) for f in FILES])
         page.wait_for_selector(".card", timeout=60000)
         page.wait_for_timeout(1500)

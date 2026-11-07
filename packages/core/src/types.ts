@@ -8,6 +8,7 @@ export type CheckId =
   | "undefined_refs"
   | "page_limit"
   | "page_numbers"
+  | "font_size"
   | "style"
   | "fonts_embedded"
   | "fonts_type3";
@@ -114,9 +115,8 @@ export const DEFAULT_CONFIG: Config = {
   acceptedCopyrights: [],
   allowArtifactAppendix: false,
   forbidAppendices: true,
-  // Implemented but not enforced yet; enable it with a config file that
-  // passes an empty disabledChecks list.
-  disabledChecks: ["style"],
+  // Font sizing and full style review remain independently opt-in.
+  disabledChecks: ["style", "font_size"],
   smallWords: [
     "a",
     "an",

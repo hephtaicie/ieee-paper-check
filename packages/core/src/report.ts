@@ -10,7 +10,8 @@ export const CHECK_LABELS: Record<CheckId, string> = {
   undefined_refs: "No undefined refs",
   page_limit: "Page limit",
   page_numbers: "No page numbers",
-  style: "Style conformance",
+  font_size: "Template font sizes",
+  style: "Bibliography font and text colour",
   fonts_embedded: "Fonts embedded",
   fonts_type3: "No Type 3 fonts",
 };

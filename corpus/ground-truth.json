@@ -10,6 +10,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -25,6 +27,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -40,6 +44,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -55,6 +61,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -70,6 +78,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -85,6 +95,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -100,6 +112,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -115,6 +129,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -130,6 +146,8 @@
       "undefined_refs": "FAIL",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -145,6 +163,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "FAIL",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -160,6 +180,8 @@
       "undefined_refs": "PASS",
       "page_limit": "FAIL",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -175,9 +197,10 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "FAIL",
       "fonts_embedded": "PASS",
-      "fonts_type3": "PASS",
-      "style": "FAIL"
+      "fonts_type3": "PASS"
     }
   },
   "bad_style_size": {
@@ -191,9 +214,10 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "FAIL",
+      "style": "PASS",
       "fonts_embedded": "PASS",
-      "fonts_type3": "PASS",
-      "style": "FAIL"
+      "fonts_type3": "PASS"
     }
   },
   "bad_style_bibfont": {
@@ -207,9 +231,10 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "FAIL",
       "fonts_embedded": "PASS",
-      "fonts_type3": "PASS",
-      "style": "FAIL"
+      "fonts_type3": "PASS"
     }
   },
   "bad_artifact": {
@@ -223,6 +248,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -238,6 +265,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     }
@@ -253,6 +282,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "PASS"
     },
@@ -270,6 +301,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "PASS",
       "fonts_type3": "FAIL"
     }
@@ -285,6 +318,8 @@
       "undefined_refs": "PASS",
       "page_limit": "PASS",
       "page_numbers": "PASS",
+      "font_size": "PASS",
+      "style": "PASS",
       "fonts_embedded": "FAIL",
       "fonts_type3": "PASS"
     }
