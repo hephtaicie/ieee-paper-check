@@ -43,6 +43,10 @@ def main() -> int:
         page.wait_for_load_state("networkidle")
         site_config = __import__("json").loads((ROOT / "packages/web/site-config.json").read_text())
         shared = page.locator("#cfg-min-limit").input_value() == str(site_config["minPageLimit"]) and page.locator("#cfg-limit").input_value() == str(site_config["pageLimit"])
+        font_size_targets_shared = (
+            page.locator("#cfg-title-font-size").input_value() == str(site_config["fontSizeTitle"])
+            and page.locator("#cfg-body-font-size").input_value() == str(site_config["fontSizeBody"])
+        )
         font_size_row = page.locator("#cfg-checks .cfg-row").filter(has_text="Template font sizes")
         style_row = page.locator("#cfg-checks .cfg-row").filter(has_text="Bibliography font and text colour")
         shared_variants = site_config["acceptedCopyrights"]
@@ -51,11 +55,20 @@ def main() -> int:
         font_size_row.locator("input").uncheck()
         font_size_only_disabled = not font_size_row.locator("input").is_checked() and not style_row.locator("input").is_checked()
         font_size_row.locator("input").check()
+        initial_title_size = page.locator("#cfg-title-font-size").input_value()
+        initial_body_size = page.locator("#cfg-body-font-size").input_value()
+        page.locator("#cfg-title-font-size").fill("25")
+        page.locator("#cfg-title-font-size").dispatch_event("change")
+        size_override_saved = page.evaluate("JSON.parse(localStorage.getItem('ieee-check-admin-config-v1')).fontSizeTitle") == 25
+        page.locator("#cfg-title-font-size").fill(initial_title_size)
+        page.locator("#cfg-title-font-size").dispatch_event("change")
+        page.locator("#cfg-body-font-size").fill(initial_body_size)
+        page.locator("#cfg-body-font-size").dispatch_event("change")
         rendered_variants = [row.locator("pre").inner_text() for row in page.locator("#copyright-variants .copyright-variant-row").all()]
         print("shared copyright variants:", len(shared_variants), "rendered:", len(rendered_variants))
         print("shared variants match displayed values:", rendered_variants == shared_variants)
         print("font-size-only option is independently controlled:", font_size_enabled, font_size_only_disabled)
-        ok = shared and font_size_enabled and style_disabled and font_size_only_disabled and len(shared_variants) > 0 and rendered_variants == shared_variants
+        ok = shared and font_size_targets_shared and size_override_saved and font_size_enabled and style_disabled and font_size_only_disabled and len(shared_variants) > 0 and rendered_variants == shared_variants
 
         # Isolate behavior tests from deployment-specific round policy while
         # preserving the shared config assertion above.

@@ -47,6 +47,11 @@ def main() -> int:
         print("enabled-check disclosure:", checked_text)
         print("artifact policy:", artifact_policy)
         site_config = json.loads((ROOT / "packages/web/site-config.json").read_text())
+        font_sizes_disclosed = (
+            "Font sizes follow the IEEE template" in checked_text
+            and site_config["fontSizeTitle"] > 0
+            and site_config["fontSizeBody"] > 0
+        )
         from_keys = [
             "copyright", "title", "artifact_appendix", "appendix", "anonymized",
             "undefined_refs", "page_limit", "page_numbers", "font_size", "style",
@@ -55,7 +60,7 @@ def main() -> int:
         expected_ids = [check_id for check_id in from_keys if check_id not in site_config["disabledChecks"]]
         if site_config.get("requiredCopyright") or site_config.get("acceptedCopyrights"):
             expected_ids.append("copyright-examples")
-        ok = enabled_ids == expected_ids
+        ok = enabled_ids == expected_ids and font_sizes_disclosed
         if site_config.get("allowArtifactAppendix"):
             ok = ok and "Artifact Description/Evaluation content is allowed" in artifact_policy
         if site_config.get("acceptedCopyrights"):

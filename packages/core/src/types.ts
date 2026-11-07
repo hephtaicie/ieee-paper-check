@@ -103,6 +103,9 @@ export interface Config {
   titleAllowedWords: string[];
   /** Appendices are forbidden in the paper body (submitted separately). */
   forbidAppendices: boolean;
+  /** Expected extracted PDF text size for title and first main-body sentence. */
+  fontSizeTitle: number;
+  fontSizeBody: number;
   /** Checks not to run at all: no report row, never affects validity.
    * Overridable per conference/round through a --config JSON file. */
   disabledChecks: CheckId[];
@@ -115,6 +118,8 @@ export const DEFAULT_CONFIG: Config = {
   acceptedCopyrights: [],
   allowArtifactAppendix: false,
   forbidAppendices: true,
+  fontSizeTitle: 24,
+  fontSizeBody: 10,
   // Font sizing and full style review remain independently opt-in.
   disabledChecks: ["style", "font_size"],
   smallWords: [

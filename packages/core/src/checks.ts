@@ -562,68 +562,59 @@ export function checkPageNumbers(data: PaperData): CheckResult {
  * Not in the default disabledChecks list means it runs and can fail a
  * paper; see Config.disabledChecks.
  */
-export function checkFontSize(data: PaperData): CheckResult {
-  const problems = sizeProblems(data);
+export function checkFontSize(data: PaperData, config: Config): CheckResult {
+  const problems: Evidence[] = [];
+  const title = findTitle(data);
+  const pageOne = data.lines.filter((line) => line.page === 1);
+  const titleLines = pageOne.filter(
+    (line) =>
+      title.rect !== undefined &&
+      line.y < data.pageHeight * 0.4 &&
+      line.size >= Math.max(...pageOne.map((item) => item.size)) * 0.75,
+  );
+  checkTargetSize(titleLines, config.fontSizeTitle, "title", problems);
+  const heading = data.lines.find((line) => /\bIntroduction\s*\.?$/i.test(line.text.trim()));
+  const mainSentence = heading
+    ? data.lines
+        .filter(
+          (line) =>
+            line.page === heading.page &&
+            line.y >= heading.y + heading.h &&
+            line.x < data.pageWidth / 2 &&
+            line.x >= heading.x - data.pageWidth / 2 &&
+            line.text.trim().length > 20,
+        )
+        .sort((a, b) => a.y - b.y || a.x - b.x)[0]
+    : data.lines.find((line) => line.page > 1 && line.text.trim().length > 20);
+  if (mainSentence)
+    checkTargetSize([mainSentence], config.fontSizeBody, "first main-content sentence", problems);
   if (problems.length === 0) return result("font_size", "PASS", []);
-  return result("font_size", "FAIL", problems.slice(0, 10));
+  return result("font_size", "FAIL", problems);
+}
+
+function checkTargetSize(
+  lines: PageLine[],
+  expected: number,
+  target: string,
+  problems: Evidence[],
+): void {
+  if (lines.length === 0) return;
+  const sizes = [...new Set(lines.map((line) => line.size))];
+  for (const size of sizes) {
+    if (Math.abs(size - expected) <= Math.max(0.5, expected * 0.04)) continue;
+    const line = lines.find((item) => item.size === size)!;
+    problems.push({
+      page: line.page,
+      detail: `The ${target} font size is ${size.toFixed(1)}px; configured size is ${expected.toFixed(1)}px.`,
+      rect: lineRect(line),
+    });
+  }
 }
 
 export function checkStyle(data: PaperData): CheckResult {
   const problems = [...bibFontProblems(data), ...colorProblems(data)];
   if (problems.length === 0) return result("style", "PASS", []);
   return result("style", "FAIL", problems.slice(0, 10));
-}
-
-/** y-range of the abstract+Index Terms block on page 1 (IEEEtran sets it in
- * 9pt, a legitimate template size). Returns null when there is no abstract. */
-function abstractZone(data: PaperData): [number, number] | null {
-  const p1 = data.lines
-    .filter((l) => l.page === 1 && !inMargin(l))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
-  const start = p1.find((l) => /^abstract[—-]/i.test(l.text.trim()));
-  if (!start) return null;
-  let endY = start.y + start.h;
-  const terms = p1.find((l) => /^index\s+terms[—-]/i.test(l.text.trim()));
-  if (terms) {
-    endY = terms.y + terms.h;
-    // Include the wrapped keyword lines after the marker (<= 3).
-    const after = p1.filter((l) => l.y >= terms.y && l.y < terms.y + terms.h * 4);
-    if (after.length > 0) endY = Math.max(endY, ...after.map((l) => l.y + l.h));
-  }
-  return [start.y, endY];
-}
-
-function sizeProblems(data: PaperData): Evidence[] {
-  const content = data.lines.filter((l) => !inMargin(l) && l.text.trim().length > 0);
-  if (content.length === 0) return [];
-  const body = median(content.map((l) => l.size));
-  if (body === null) return [];
-  const zone = abstractZone(data);
-  const problems: Evidence[] = [];
-  for (const l of content) {
-    const s = l.size;
-    if (zone && l.page === 1 && l.y >= zone[0] && l.y <= zone[1]) continue;
-    // Headings/title (>= body+1) and body text are the template's sizes.
-    if (s >= body - 0.25) continue;
-    // Known small roles live clearly below the body: 8pt footnotes and
-    // captions, 7pt sub/superscripts, 6pt table notes, 5.8px subscripts.
-    if (s <= body * 0.87) continue;
-    // The squeezed zone in between (8.7-9.7px) is sub-body paragraph
-    // text — the classic trick to dodge the page limit.
-    problems.push({
-      page: l.page,
-      detail: `Font size ${s.toFixed(1)}px (expected ~${body.toFixed(1)}px body or >=6.5px small text): '${l.text.trim().slice(0, 60)}'`,
-      rect: lineRect(l),
-    });
-  }
-  // Deduplicate: one evidence per (page, size) pair is enough.
-  const seen = new Set<string>();
-  return problems.filter((e) => {
-    const k = `${e.page}:${e.detail.split("px")[0]}`;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
 }
 
 const REFS_HEADING_STYLE_RE = /^references$/i;

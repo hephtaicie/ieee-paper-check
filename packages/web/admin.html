@@ -34,7 +34,17 @@
         <span class="muted">main content only; references excluded</span>
       </div>
       <p class="muted">These settings start from the deployed shared configuration. Changes here override it only in this browser. Title-word dictionary additions also remain local to this browser.</p>
-      <p class="muted">Font-size-only checking is the separate “Template font sizes” option; enable it here without enabling bibliography-font and colour checks.</p>
+      <p class="muted">Font-size-only checking compares the title and first body line after the Introduction heading to these expected PDF sizes. Adjust them for the conference template; bibliography-font and colour checks remain separate.</p>
+      <div class="cfg-page-range">
+        <label class="cfg-limit">
+          Title font size (PDF px)
+          <input id="cfg-title-font-size" type="number" min="1" max="100" step="0.1" />
+        </label>
+        <label class="cfg-limit">
+          Main content font size (PDF px)
+          <input id="cfg-body-font-size" type="number" min="1" max="100" step="0.1" />
+        </label>
+      </div>
       <label class="cfg-row">
         <input id="cfg-artifact" type="checkbox" />
         Allow Artifact Description/Evaluation sections (show an informational notice on matching papers)

@@ -16,7 +16,7 @@ your machine — no PDF ever leaves it.
 | 6 | No unresolved LaTeX references (`??` or `[?]`) |
 | 7 | Main content is at least 4 and at most 12 pages by default, references excluded (both limits are configurable) |
 | 8 | No page numbers in margins |
-| 9 | Template font sizes (no squeezed sub-body text) — opt-in as `font_size` |
+| 9 | Configurable title and first main-content line font sizes — opt-in as `font_size` |
 | 10 | Bibliography uses the template serif font; no coloured text (figures exempt) — independently opt-in as `style` |
 | 11 | All fonts embedded |
 | 12 | No Type 3 fonts |
@@ -146,6 +146,8 @@ conference/check round. Example:
   "pageLimit": 12,
   "allowArtifactAppendix": false,
   "requiredCopyright": "978-1-6654-1234-5/25/$31.00 © 2025 IEEE",
+  "fontSizeTitle": 24,
+  "fontSizeBody": 10,
   "disabledChecks": ["style"]
 }
 ```
@@ -156,6 +158,9 @@ conference/check round. Example:
   reported informatively in the admin UI, but does not fail the paper.
 - `requiredCopyright` — require this exact text somewhere in the page-1
   copyright zone; `null` accepts any IEEE-format notice.
+- `fontSizeTitle` / `fontSizeBody` — expected PDF text sizes for the title and
+  first line of the Introduction. The admin controls can adjust these values;
+  the check allows a small extraction tolerance.
 - `disabledChecks` — check ids to skip entirely: they produce no report
   row and never affect the verdict. Available ids: `copyright`,
   `title`, `artifact_appendix`, `appendix`, `anonymized`,

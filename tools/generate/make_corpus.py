@@ -336,13 +336,13 @@ VARIANTS_SPEC: dict[str, dict] = {
         "expected": {"style": "FAIL"},
     },
     "bad_style_size": {
-        "tex": render(n_blocks=6, preamble="\\usepackage{xcolor}\n").replace(
-            "The smart-grid workload we target couples",
-            "{\\fontsize{9}{10.8}\\selectfont The smart-grid workload we target couples",
+        "tex": render(n_blocks=6).replace(
+            "Smart-grid simulation increasingly couples",
+            "{\\fontsize{9}{10.8}\\selectfont Smart-grid simulation increasingly couples",
             1,
         ).replace(
-            "varies with the aggregated DER output. We model this as a parametrised",
-            "varies with the aggregated DER output.} We model this as a parametrised",
+            "checkpoints with the windows that consume them.",
+            "checkpoints with the windows that consume them.}",
             1,
         ),
         "expected": {"font_size": "FAIL"},

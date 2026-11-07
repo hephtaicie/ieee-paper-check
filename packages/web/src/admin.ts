@@ -136,6 +136,8 @@ function renderSettings(): void {
   const limit = byId<HTMLInputElement>("cfg-limit");
   minLimit.value = String(config.minPageLimit);
   limit.value = String(config.pageLimit);
+  byId<HTMLInputElement>("cfg-title-font-size").value = String(config.fontSizeTitle);
+  byId<HTMLInputElement>("cfg-body-font-size").value = String(config.fontSizeBody);
   byId<HTMLInputElement>("cfg-artifact").checked = config.allowArtifactAppendix;
   renderCopyrightVariants();
   const rows = byId<HTMLDivElement>("cfg-checks");
@@ -172,6 +174,21 @@ byId<HTMLInputElement>("cfg-min-limit").addEventListener("change", (e) => {
 });
 byId<HTMLInputElement>("cfg-limit").addEventListener("change", (e) => {
   updateLimit("pageLimit", (e.target as HTMLInputElement).value);
+});
+
+function updateFontSize(field: "fontSizeTitle" | "fontSizeBody", value: string): void {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return;
+  config[field] = parsed;
+  saveAdminConfig(config);
+  void app.revalidate();
+}
+
+byId<HTMLInputElement>("cfg-title-font-size").addEventListener("change", (e) => {
+  updateFontSize("fontSizeTitle", (e.target as HTMLInputElement).value);
+});
+byId<HTMLInputElement>("cfg-body-font-size").addEventListener("change", (e) => {
+  updateFontSize("fontSizeBody", (e.target as HTMLInputElement).value);
 });
 
 byId<HTMLInputElement>("cfg-artifact").addEventListener("change", (e) => {
