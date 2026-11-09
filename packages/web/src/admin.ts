@@ -82,6 +82,34 @@ function saveTrackedFiles(): void {
   localStorage.setItem(TRACKED_FILES_KEY, JSON.stringify([...trackedFiles]));
 }
 
+function csvEscape(value: string): string {
+  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function exportTrackerCsv(): void {
+  const rows = [
+    ["filename", "status"],
+    ...[...trackedFiles]
+      .sort((a, b) => a.localeCompare(b))
+      .map((file) => {
+        const status = reviewStatus.get(file) ?? "red";
+        return [
+          file,
+          status === "green" ? "Validated" : status === "orange" ? "Emailed" : "Pending",
+        ];
+      }),
+  ];
+  const blob = new Blob([rows.map((row) => row.map(csvEscape).join(",")).join("\r\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "paper-statuses.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function removePaper(file: string): void {
   reviewStatus.delete(file);
   trackedFiles.delete(file);
@@ -572,6 +600,7 @@ function renderTracker(): void {
 
 const app: App = mountApp(el, () => config, augmentCard, renderTracker);
 renderTracker();
+byId<HTMLButtonElement>("export-paper-tracker").addEventListener("click", exportTrackerCsv);
 byId<HTMLButtonElement>("reset-review-statuses").addEventListener("click", () => {
   if (!window.confirm(`Reset statuses for all ${trackedFiles.size} tracked paper(s) to red?`))
     return;

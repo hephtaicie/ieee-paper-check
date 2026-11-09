@@ -312,6 +312,18 @@ def main() -> int:
         good_tracker_row = page.locator('.tracker-row').filter(has_text='pap200x1-good.pdf')
         ok = ok and bad_tracker_row.locator('.tracker-status').inner_text() == 'Emailed'
         ok = ok and good_tracker_row.locator('.tracker-status').inner_text() == 'Validated'
+        with page.expect_download() as tracker_download:
+            page.locator('#export-paper-tracker').click()
+        download = tracker_download.value
+        tracker_csv = Path(tempfile.mkdtemp()) / download.suggested_filename
+        download.save_as(tracker_csv)
+        exported_rows = tracker_csv.read_text().splitlines()
+        print('tracker CSV export:', download.suggested_filename, exported_rows)
+        ok = ok and exported_rows == [
+            'filename,status',
+            'pap104s3-file2.pdf,Emailed',
+            'pap200x1-good.pdf,Validated',
+        ]
         print('tracker reload assertions', ok)
         page.locator('#tracker-filter').select_option('orange')
         orange_rows = page.locator('.tracker-row').count()
